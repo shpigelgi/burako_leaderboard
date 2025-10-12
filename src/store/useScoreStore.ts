@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { LocalScoreRepository } from '../repositories/localScoreRepository';
+import { FirebaseScoreRepository, subscribeToGames } from '../repositories/firebaseScoreRepository';
+import { ensureAuth } from '../lib/firebase';
 import type {
   GameId,
   GameRecord,
@@ -23,7 +25,10 @@ export interface ScoreState {
   deleteGame: (id: GameId) => Promise<void>;
 }
 
-const repository = new LocalScoreRepository();
+const useFirebase = import.meta.env.VITE_USE_FIREBASE === 'true';
+const repository = useFirebase ? new FirebaseScoreRepository() : new LocalScoreRepository();
+
+let unsubscribeGames: (() => void) | undefined;
 
 export const useScoreStore = create<ScoreState>((set, get) => ({
   players: [],
@@ -38,11 +43,26 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     }
     set({ loading: true, error: undefined });
     try {
+      if (useFirebase) {
+        await ensureAuth();
+      }
+
       const [players, pairs, games] = await Promise.all([
         repository.listPlayers(),
         repository.listPairs(),
         repository.listGames(),
       ]);
+
+      if (useFirebase && !unsubscribeGames) {
+        unsubscribeGames = subscribeToGames(
+          (records) => {
+            set({ games: records });
+          },
+          (error) => {
+            set({ error: error.message });
+          },
+        );
+      }
       set({
         players,
         pairs,
