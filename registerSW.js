@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/burako_leaderboard/sw.js', { scope: '/burako_leaderboard/' })})}
