@@ -32,4 +32,5 @@ export default defineConfig({
       },
     }),
   ],
+  base: '/burako_leaderboard/', 
 });
