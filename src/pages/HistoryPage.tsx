@@ -1,0 +1,255 @@
+import { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { useScoreStore } from '../store/useScoreStore';
+import type { GameId, GameRecord, PlayerId } from '../types';
+
+interface EditState {
+  scores: Record<PlayerId, number>;
+  notes: string;
+}
+
+export function HistoryPage() {
+  const games = useScoreStore((state) => state.games);
+  const players = useScoreStore((state) => state.players);
+  const pairs = useScoreStore((state) => state.pairs);
+  const updateGame = useScoreStore((state) => state.updateGame);
+  const undoLastChange = useScoreStore((state) => state.undoLastChange);
+  const deleteGame = useScoreStore((state) => state.deleteGame);
+  const loading = useScoreStore((state) => state.loading);
+
+  const playerLookup = useMemo(
+    () => new Map(players.map((player) => [player.id, player.name])),
+    [players],
+  );
+  const pairLookup = useMemo(() => new Map(pairs.map((pair) => [pair.id, pair])), [pairs]);
+
+  const [editingId, setEditingId] = useState<GameId | undefined>();
+  const [drafts, setDrafts] = useState<Record<GameId, EditState>>({});
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+  const startEdit = (game: GameRecord) => {
+    setEditingId(game.id);
+    setDrafts((current) => ({
+      ...current,
+      [game.id]: {
+        scores: Object.fromEntries(game.scores.map((score) => [score.playerId, score.points])) as Record<
+          PlayerId,
+          number
+        >,
+        notes: game.notes ?? '',
+      },
+    }));
+    setErrorMessage(undefined);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(undefined);
+    setErrorMessage(undefined);
+  };
+
+  const handleScoreChange = (gameId: GameId, playerId: PlayerId) => (event: ChangeEvent<HTMLInputElement>) => {
+    const value = Number.parseInt(event.target.value, 10);
+    setDrafts((current) => ({
+      ...current,
+      [gameId]: {
+        ...current[gameId],
+        scores: {
+          ...current[gameId].scores,
+          [playerId]: Number.isNaN(value) ? 0 : value,
+        },
+      },
+    }));
+  };
+
+  const handleNotesChange = (gameId: GameId) => (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const notes = event.target.value;
+    setDrafts((current) => ({
+      ...current,
+      [gameId]: {
+        ...current[gameId],
+        notes,
+      },
+    }));
+  };
+
+  const applyEdit = async (game: GameRecord) => {
+    const draft = drafts[game.id];
+    if (!draft) {
+      return;
+    }
+
+    const updatedScores = game.scores.map((score) => ({
+      playerId: score.playerId,
+      points: draft.scores[score.playerId] ?? 0,
+    }));
+
+    const updatedTeams = game.teams.map((team) => {
+      const pair = pairLookup.get(team.pairId);
+      if (!pair) {
+        return team;
+      }
+      const totalPoints = pair.players.reduce((sum, playerId) => sum + (draft.scores[playerId] ?? 0), 0);
+      return {
+        ...team,
+        totalPoints,
+      };
+    });
+
+    try {
+      await updateGame(game.id, {
+        teams: updatedTeams,
+        scores: updatedScores,
+        notes: draft.notes.trim() ? draft.notes.trim() : undefined,
+      });
+      setEditingId(undefined);
+      setErrorMessage(undefined);
+    } catch (error) {
+      setErrorMessage((error as Error).message);
+    }
+  };
+
+  const handleUndo = async (gameId: GameId) => {
+    try {
+      await undoLastChange(gameId);
+    } catch (error) {
+      setErrorMessage((error as Error).message);
+    }
+  };
+
+  const handleDelete = async (gameId: GameId) => {
+    if (!window.confirm('Delete this game permanently?')) {
+      return;
+    }
+    try {
+      await deleteGame(gameId);
+    } catch (error) {
+      setErrorMessage((error as Error).message);
+    }
+  };
+
+  if (games.length === 0) {
+    return <div className="panel">No games recorded yet.</div>;
+  }
+
+  return (
+    <section className="panel">
+      <header className="panel-header">
+        <h1>Game History</h1>
+        <p>Review every round, adjust scores, or undo the latest change.</p>
+      </header>
+      {errorMessage ? <div className="error-message">{errorMessage}</div> : null}
+      <div className="history-list">
+        {games
+          .slice()
+          .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
+          .map((game) => {
+            const isEditing = editingId === game.id;
+            const draft = drafts[game.id];
+            return (
+              <article key={game.id} className="history-card">
+                <header className="history-card__header">
+                  <div>
+                    <h2>Game on {new Date(game.playedAt).toLocaleString()}</h2>
+                    <p className="muted">
+                      Teams:{' '}
+                      {game.teams
+                        .map((team) => {
+                          const pair = pairLookup.get(team.pairId);
+                          if (!pair) {
+                            return team.pairId;
+                          }
+                          const names = pair.players
+                            .map((playerId) => playerLookup.get(playerId) ?? playerId)
+                            .join(' & ');
+                          return `${names} (${team.totalPoints} pts)`;
+                        })
+                        .join(' vs ')}
+                    </p>
+                  </div>
+                  <div className="history-card__actions">
+                    {isEditing ? (
+                      <>
+                        <button type="button" onClick={() => applyEdit(game)} disabled={loading}>
+                          Save
+                        </button>
+                        <button type="button" className="secondary" onClick={cancelEdit} disabled={loading}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => startEdit(game)} disabled={loading}>
+                          Edit
+                        </button>
+                        <button type="button" className="secondary" onClick={() => handleUndo(game.id)} disabled={loading}>
+                          Undo
+                        </button>
+                        <button type="button" className="danger" onClick={() => handleDelete(game.id)} disabled={loading}>
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </header>
+                {isEditing ? (
+                  <div className="history-card__body">
+                    <div className="scores-grid">
+                      {game.scores.map((score) => (
+                        <div className="field" key={score.playerId}>
+                          <label className="field-label" htmlFor={`${game.id}-${score.playerId}`}>
+                            {playerLookup.get(score.playerId)}
+                          </label>
+                          <input
+                            id={`${game.id}-${score.playerId}`}
+                            className="field-control"
+                            type="number"
+                            value={draft?.scores[score.playerId] ?? score.points}
+                            onChange={handleScoreChange(game.id, score.playerId)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="field full-width">
+                      <label className="field-label" htmlFor={`${game.id}-notes`}>
+                        Notes
+                      </label>
+                      <textarea
+                        id={`${game.id}-notes`}
+                        className="field-control"
+                        rows={3}
+                        value={draft?.notes ?? game.notes ?? ''}
+                        onChange={handleNotesChange(game.id)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="history-card__body">
+                    <ul className="score-list">
+                      {game.scores.map((score) => (
+                        <li key={score.playerId}>
+                          <span>{playerLookup.get(score.playerId)}</span>
+                          <span>{score.points} pts</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {game.notes ? <p className="muted">Notes: {game.notes}</p> : null}
+                    <details className="audit-trail">
+                      <summary>Audit trail</summary>
+                      <ul>
+                        {game.auditTrail.map((entry) => (
+                          <li key={entry.id}>
+                            <span>{new Date(entry.timestamp).toLocaleString()}</span>
+                            <span> – {entry.type.toUpperCase()}: {entry.summary}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+      </div>
+    </section>
+  );
+}
