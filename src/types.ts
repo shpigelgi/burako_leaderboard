@@ -99,6 +99,7 @@ export interface GameSnapshot {
   teams: TeamResult[];
   scores: GameScore[];
   notes?: string;
+  playedAt?: string;
 }
 
 export interface GameRecord {
@@ -121,10 +122,19 @@ export interface GameUpdate {
   teams?: TeamResult[];
   scores?: GameScore[];
   notes?: string;
+  playedAt?: string;
 }
 
 export interface LeaderboardEntry {
   playerId: PlayerId;
+  totalPoints: number;
+  gamesPlayed: number;
+  averagePoints: number;
+  lastPlayedAt?: string;
+}
+
+export interface PairLeaderboardEntry {
+  pairId: PairId;
   totalPoints: number;
   gamesPlayed: number;
   averagePoints: number;

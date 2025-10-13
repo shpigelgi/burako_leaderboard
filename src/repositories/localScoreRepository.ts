@@ -47,6 +47,7 @@ const createSnapshot = (game: GameRecord): GameSnapshot => ({
   })),
   scores: game.scores.map((score) => ({ ...score })),
   notes: game.notes,
+  playedAt: game.playedAt,
 });
 
 const readGames = (): GameRecord[] => {
@@ -149,6 +150,10 @@ export class LocalScoreRepository implements ScoreRepository {
       current.notes = update.notes;
     }
 
+    if (update.playedAt) {
+      current.playedAt = update.playedAt;
+    }
+
     const nowIso = new Date().toISOString();
     current.auditTrail.push({
       id: createId('audit'),
@@ -188,6 +193,9 @@ export class LocalScoreRepository implements ScoreRepository {
     }));
     current.scores = previousSnapshot.scores.map((score) => ({ ...score }));
     current.notes = previousSnapshot.notes;
+    if (previousSnapshot.playedAt) {
+      current.playedAt = previousSnapshot.playedAt;
+    }
 
     const nowIso = new Date().toISOString();
     current.auditTrail.push({

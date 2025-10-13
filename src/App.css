@@ -35,11 +35,13 @@
   border-radius: 999px;
   color: #444;
   transition: all 150ms ease;
+  text-decoration: none;
 }
 
 .app-nav a:hover {
   background: rgba(37, 99, 235, 0.08);
   color: #2563eb;
+  text-decoration: none;
 }
 
 .app-nav .active {
@@ -49,16 +51,16 @@
 }
 
 .app-main {
-  padding: clamp(1.5rem, 3vw, 3rem);
+  padding: clamp(1rem, 2vw, 2.25rem);
   display: flex;
   justify-content: center;
 }
 
 .panel {
-  width: min(960px, 100%);
+  width: min(920px, 100%);
   background: #fff;
   border-radius: 20px;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 2.5vw, 2.1rem);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
   display: grid;
   gap: 1.5rem;
@@ -78,6 +80,13 @@
 .panel-header p {
   margin: 0;
   color: #5f6472;
+}
+
+.section-title {
+  margin: 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .table {
@@ -104,6 +113,14 @@
   border-bottom: none;
 }
 
+.table tbody tr {
+  transition: background 120ms ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
 .status-card {
   width: 100%;
   padding: 1.5rem;
@@ -128,9 +145,9 @@
 
 .history-card {
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
-  border-radius: 18px;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border-radius: 16px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: #fafbff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -160,13 +177,13 @@
 }
 
 .history-card__actions button {
-  min-width: 90px;
+  min-width: 82px;
 }
 
 .scores-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.85rem;
 }
 
 .score-list {
@@ -325,10 +342,10 @@
 
 .field-set {
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  padding: 1.25rem;
+  border-radius: 14px;
+  padding: 1.1rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .field-set legend {
@@ -342,8 +359,8 @@
 }
 
 .field.grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.85rem;
 }
 
 .field-label {
@@ -386,7 +403,7 @@
 
 .form-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -437,6 +454,59 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+@media (max-width: 1024px) {
+  .panel {
+    padding: 1.75rem;
+  }
+
+  .team-scoring-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .scores-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .form-grid {
+    gap: 0.95rem;
+  }
+
+  .form-actions {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-header {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .app-brand {
+    font-size: 1.16rem;
+  }
+
+  .app-nav a {
+    font-size: 0.84rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .panel {
+    padding: 0.55rem;
+  }
+
+  .history-card {
+    padding: 0.75rem;
+  }
+
+  .field-control {
+    padding: 0.45rem 0.55rem;
+  }
+
+  .table tbody tr {
+    padding: 0.55rem 0.65rem;
+  }
+}
+
 @media (max-width: 768px) {
   .app-header {
     flex-direction: column;
@@ -446,10 +516,179 @@ button:disabled {
 
   .app-nav {
     width: 100%;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .app-nav a {
+    flex: 1 1 calc(50% - 0.5rem);
+    text-align: center;
+  }
+
+  .app-main {
+    padding: 1.25rem 0.85rem;
   }
 
   .panel {
-    padding: 1.25rem;
+    padding: 1.1rem;
+    border-radius: 14px;
+    overflow-x: auto;
+  }
+
+  .panel table {
+    min-width: 600px;
+  }
+
+  .history-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .history-card__actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .history-card__actions button {
+    flex: 1 1 110px;
+  }
+
+  .matchup-summary {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .scores-grid,
+  .field.grid,
+  .team-scoring-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-scoring-card {
+    padding: 0.9rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 540px) {
+  .app-main {
+    padding: 1rem 0.65rem;
+  }
+
+  .panel {
+    padding: 0.9rem;
+    width: 100%;
+  }
+
+  .app-nav a {
+    flex: 1 1 100%;
+    font-size: 0.95rem;
+  }
+
+  .history-card__actions button {
+    flex: 1 1 100%;
+  }
+
+  .panel table {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0.75rem 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .app-brand {
+    font-size: 1.24rem;
+    line-height: 1.3;
+  }
+
+  .app-nav a {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.9rem;
+  }
+
+  .panel {
+    padding: 0.7rem;
+    border-radius: 11px;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .history-card {
+    padding: 0.9rem;
+  }
+
+  .scores-grid,
+  .field.grid {
+    gap: 0.65rem;
+  }
+
+  .field-control {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .table {
+    border-radius: 12px;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .table tbody tr {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .table tbody tr td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: none;
+    padding: 0.35rem 0;
+  }
+
+  .table tbody tr td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #4b5563;
+    margin-right: 0.75rem;
+  }
+
+  .table tbody tr td:last-child {
+    border-bottom: none;
+  }
+
+  .form-grid {
+    gap: 1.1rem;
+  }
+
+  .form-actions {
+    gap: 0.6rem;
   }
 }

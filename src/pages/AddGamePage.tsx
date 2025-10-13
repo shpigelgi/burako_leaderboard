@@ -78,6 +78,12 @@ const createCardCounts = (): CardCountBreakdown => ({
   eightToKing: 0,
 });
 
+const formatDateTimeLocal = (value: Date) => {
+  const offset = value.getTimezoneOffset();
+  const local = new Date(value.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+};
+
 const createTeamState = (pairId: PairId | '' = ''): TeamFormState => ({
   pairId,
   cleanCanastas: 0,
@@ -139,6 +145,7 @@ export function AddGamePage() {
   const [teamA, setTeamA] = useState<TeamFormState>(() => createTeamState());
   const [teamB, setTeamB] = useState<TeamFormState>(() => createTeamState());
   const [notes, setNotes] = useState('');
+  const [playedAtInput, setPlayedAtInput] = useState(() => formatDateTimeLocal(new Date()));
   const [formError, setFormError] = useState<string>();
   const [successMessage, setSuccessMessage] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -303,6 +310,7 @@ export function AddGamePage() {
     setTeamA(createTeamState(selectedMatchup?.pairIds[0] ?? ''));
     setTeamB(createTeamState(selectedMatchup?.pairIds[1] ?? ''));
     setNotes('');
+    setPlayedAtInput(formatDateTimeLocal(new Date()));
   };
 
   const derivePlayerScores = (teamResults: TeamResult[]): GameScore[] => {
@@ -312,16 +320,9 @@ export function AddGamePage() {
       if (!pair) {
         continue;
       }
-      const playersInPair = pair.players.length;
-      const baseShare = Math.floor(team.totalPoints / playersInPair);
-      let remainder = team.totalPoints % playersInPair;
       for (const playerId of pair.players) {
-        const extra = remainder > 0 ? 1 : 0;
-        if (remainder > 0) {
-          remainder -= 1;
-        }
         const current = distribution.get(playerId) ?? 0;
-        distribution.set(playerId, current + baseShare + extra);
+        distribution.set(playerId, current + team.totalPoints);
       }
     }
     return Array.from(distribution.entries()).map(([playerId, points]) => ({ playerId, points }));
@@ -385,6 +386,7 @@ export function AddGamePage() {
     try {
       setSubmitting(true);
       await addGame({
+        playedAt: new Date(playedAtInput).toISOString(),
         teams: teamResults as TeamResult[],
         scores,
         notes: notes.trim() ? notes.trim() : undefined,
@@ -575,6 +577,34 @@ export function AddGamePage() {
         <h1>Add Game</h1>
         <p>Capture scores, canasta details, and notes for the latest round.</p>
       </header>
+      <div className="field">
+        <label className="field-label" htmlFor="played-at">Played at</label>
+        <input
+          id="played-at"
+          className="field-control"
+          type="datetime-local"
+          value={playedAtInput}
+          max={formatDateTimeLocal(new Date())}
+          onChange={(event) => setPlayedAtInput(event.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="matchup">Matchup</label>
+        <select
+          id="matchup"
+          className="field-control"
+          value={selectedMatchupId}
+          onChange={handleMatchupChange}
+          required
+        >
+          <option value="">Select matchup</option>
+          {matchups.map((matchup) => (
+            <option key={matchup.id} value={matchup.id}>
+              {matchup.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {!isFormReady ? (
         <div className="status-card">Roster is loading…</div>
       ) : (

@@ -72,13 +72,21 @@ const gameRecordFromDoc = (docData: DocumentData, id: string): GameRecord => ({
   auditTrail: ensureArray<DocumentData>(docData.auditTrail, []).map(auditEntryFromData),
 });
 
-const buildSnapshot = (teams: TeamResult[], scores: GameScore[], notes: string | undefined): GameSnapshot => {
+const buildSnapshot = (
+  teams: TeamResult[],
+  scores: GameScore[],
+  notes: string | undefined,
+  playedAt: string | undefined,
+): GameSnapshot => {
   const snapshot: GameSnapshot = {
     teams: teams.map((team) => ({ ...team, canasta: { ...team.canasta } })),
     scores: scores.map((score) => ({ ...score })),
   };
-  if (notes !== undefined) {
+  if (notes !== undefined && notes !== null) {
     snapshot.notes = notes;
+  }
+  if (playedAt) {
+    snapshot.playedAt = playedAt;
   }
   return snapshot;
 };
@@ -139,7 +147,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
       timestamp: new Date().toISOString(),
       summary: 'Game recorded',
       type: 'create',
-      snapshot: buildSnapshot(input.teams, input.scores, notes),
+      snapshot: buildSnapshot(input.teams, input.scores, notes, playedAt),
     };
 
     await setDoc(gameDoc, {
@@ -166,10 +174,12 @@ export class FirebaseScoreRepository implements ScoreRepository {
       const currentTeams: TeamResult[] = ensureArray(data.teams, []);
       const currentScores: GameScore[] = ensureArray(data.scores, []);
       const currentNotes: string | undefined = data.notes ?? undefined;
+      const currentPlayedAt: string | undefined = data.playedAt ? toIsoString(data.playedAt) : undefined;
 
       const nextTeams = update.teams ?? currentTeams;
       const nextScores = update.scores ?? currentScores;
       const nextNotes = update.notes !== undefined ? update.notes : currentNotes;
+      const nextPlayedAt = update.playedAt ?? currentPlayedAt;
 
       const auditEntry: AuditEntry = {
         id: createId('audit'),
@@ -177,13 +187,14 @@ export class FirebaseScoreRepository implements ScoreRepository {
         timestamp: new Date().toISOString(),
         summary: 'Game updated',
         type: 'update',
-        snapshot: buildSnapshot(currentTeams, currentScores, currentNotes),
+        snapshot: buildSnapshot(currentTeams, currentScores, currentNotes, currentPlayedAt),
       };
 
       transaction.update(gameDoc, {
         teams: nextTeams,
         scores: nextScores,
         notes: toNullable(nextNotes),
+        playedAt: nextPlayedAt,
         auditTrail: [...ensureArray<DocumentData>(data.auditTrail, []), auditEntry],
       });
     });
@@ -214,6 +225,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
         ensureArray<TeamResult>(lastEntry.snapshot?.teams, ensureArray(data.teams, [])),
         ensureArray<GameScore>(lastEntry.snapshot?.scores, ensureArray(data.scores, [])),
         lastEntry.snapshot?.notes ?? data.notes ?? undefined,
+        lastEntry.snapshot?.playedAt ?? (data.playedAt ? toIsoString(data.playedAt) : undefined),
       );
 
       const auditEntry: AuditEntry = {
@@ -226,6 +238,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
           ensureArray<TeamResult>(data.teams, []),
           ensureArray<GameScore>(data.scores, []),
           data.notes ?? undefined,
+          data.playedAt ? toIsoString(data.playedAt) : undefined,
         ),
       };
 
@@ -233,6 +246,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
         teams: restoredSnapshot.teams,
         scores: restoredSnapshot.scores,
         notes: toNullable(restoredSnapshot.notes),
+        playedAt: restoredSnapshot.playedAt ?? (data.playedAt ? toIsoString(data.playedAt) : undefined),
         auditTrail: [...auditTrail.slice(0, -1), auditEntry],
       });
     });

@@ -1,4 +1,10 @@
-import type { GameRecord, LeaderboardEntry, PlayerId } from '../types';
+import type {
+  GameRecord,
+  LeaderboardEntry,
+  PairId,
+  PairLeaderboardEntry,
+  PlayerId,
+} from '../types';
 
 export interface PlayerAggregate {
   playerId: PlayerId;
@@ -32,14 +38,56 @@ export function calculateLeaderboard(records: GameRecord[]): LeaderboardEntry[] 
     }
   }
 
-  return Array.from(aggregates.values()).map((aggregate) => ({
-    playerId: aggregate.playerId,
-    totalPoints: aggregate.totalPoints,
-    gamesPlayed: aggregate.gamesPlayed,
-    averagePoints:
-      aggregate.gamesPlayed === 0
-        ? 0
-        : Number((aggregate.totalPoints / aggregate.gamesPlayed).toFixed(2)),
-    lastPlayedAt: aggregate.lastPlayedAt,
-  }));
+  return Array.from(aggregates.values())
+    .map((aggregate) => ({
+      playerId: aggregate.playerId,
+      totalPoints: aggregate.totalPoints,
+      gamesPlayed: aggregate.gamesPlayed,
+      averagePoints:
+        aggregate.gamesPlayed === 0
+          ? 0
+          : Number((aggregate.totalPoints / aggregate.gamesPlayed).toFixed(2)),
+      lastPlayedAt: aggregate.lastPlayedAt,
+    }))
+    .sort((a, b) => b.totalPoints - a.totalPoints || b.averagePoints - a.averagePoints);
+}
+
+export interface PairAggregate {
+  pairId: PairId;
+  totalPoints: number;
+  gamesPlayed: number;
+  lastPlayedAt?: string;
+}
+
+export function calculatePairLeaderboard(records: GameRecord[]): PairLeaderboardEntry[] {
+  const aggregates = new Map<PairId, PairAggregate>();
+
+  for (const record of records) {
+    for (const team of record.teams) {
+      const existing = aggregates.get(team.pairId) ?? {
+        pairId: team.pairId,
+        totalPoints: 0,
+        gamesPlayed: 0,
+        lastPlayedAt: undefined,
+      };
+
+      existing.totalPoints += team.totalPoints;
+      existing.gamesPlayed += 1;
+      existing.lastPlayedAt = record.playedAt;
+      aggregates.set(team.pairId, existing);
+    }
+  }
+
+  return Array.from(aggregates.values())
+    .map((aggregate) => ({
+      pairId: aggregate.pairId,
+      totalPoints: aggregate.totalPoints,
+      gamesPlayed: aggregate.gamesPlayed,
+      averagePoints:
+        aggregate.gamesPlayed === 0
+          ? 0
+          : Number((aggregate.totalPoints / aggregate.gamesPlayed).toFixed(2)),
+      lastPlayedAt: aggregate.lastPlayedAt,
+    }))
+    .sort((a, b) => b.totalPoints - a.totalPoints || b.averagePoints - a.averagePoints);
 }

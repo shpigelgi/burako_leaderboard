@@ -6,7 +6,18 @@ import type { GameId, GameRecord, PlayerId } from '../types';
 interface EditState {
   scores: Record<PlayerId, number>;
   notes: string;
+  playedAt: string;
 }
+
+const toDateTimeLocal = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+};
 
 export function HistoryPage() {
   const games = useScoreStore((state) => state.games);
@@ -37,6 +48,7 @@ export function HistoryPage() {
           number
         >,
         notes: game.notes ?? '',
+        playedAt: game.playedAt,
       },
     }));
     setErrorMessage(undefined);
@@ -72,6 +84,36 @@ export function HistoryPage() {
     }));
   };
 
+  const handlePlayedAtChange = (gameId: GameId) => (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setDrafts((current) => {
+      const draft = current[gameId];
+      if (!draft) {
+        return current;
+      }
+      if (!value) {
+        return {
+          ...current,
+          [gameId]: {
+            ...draft,
+            playedAt: draft.playedAt,
+          },
+        };
+      }
+      const nextDate = new Date(value);
+      if (Number.isNaN(nextDate.getTime())) {
+        return current;
+      }
+      return {
+        ...current,
+        [gameId]: {
+          ...draft,
+          playedAt: nextDate.toISOString(),
+        },
+      };
+    });
+  };
+
   const applyEdit = async (game: GameRecord) => {
     const draft = drafts[game.id];
     if (!draft) {
@@ -95,12 +137,22 @@ export function HistoryPage() {
       };
     });
 
+    const payload = {
+      teams: updatedTeams,
+      scores: updatedScores,
+      notes: draft.notes.trim() ? draft.notes.trim() : undefined,
+    } as const;
+
+    const nextPayload =
+      draft.playedAt !== game.playedAt
+        ? {
+            ...payload,
+            playedAt: new Date(draft.playedAt).toISOString(),
+          }
+        : payload;
+
     try {
-      await updateGame(game.id, {
-        teams: updatedTeams,
-        scores: updatedScores,
-        notes: draft.notes.trim() ? draft.notes.trim() : undefined,
-      });
+      await updateGame(game.id, nextPayload);
       setEditingId(undefined);
       setErrorMessage(undefined);
     } catch (error) {
@@ -149,7 +201,22 @@ export function HistoryPage() {
               <article key={game.id} className="history-card">
                 <header className="history-card__header">
                   <div>
-                    <h2>Game on {new Date(game.playedAt).toLocaleString()}</h2>
+                    {isEditing ? (
+                      <div className="field">
+                        <label className="field-label" htmlFor={`${game.id}-played-at`}>
+                          Played at
+                        </label>
+                        <input
+                          id={`${game.id}-played-at`}
+                          className="field-control"
+                          type="datetime-local"
+                          value={draft ? toDateTimeLocal(draft.playedAt) : toDateTimeLocal(game.playedAt)}
+                          onChange={handlePlayedAtChange(game.id)}
+                        />
+                      </div>
+                    ) : (
+                      <h2>Game on {new Date(game.playedAt).toLocaleString()}</h2>
+                    )}
                     <p className="muted">
                       Teams:{' '}
                       {game.teams

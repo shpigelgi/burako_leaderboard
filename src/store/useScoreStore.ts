@@ -78,8 +78,12 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const created = await repository.addGame(input);
-      const games = [...get().games, created];
-      set({ games, loading: false });
+      if (useFirebase) {
+        set({ loading: false });
+      } else {
+        const games = [...get().games, created];
+        set({ games, loading: false });
+      }
       return created;
     } catch (error) {
       set({ loading: false, error: (error as Error).message });
@@ -90,8 +94,12 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const updated = await repository.updateGame(id, update);
-      const games = get().games.map((game) => (game.id === id ? updated : game));
-      set({ games, loading: false });
+      if (useFirebase) {
+        set({ loading: false });
+      } else {
+        const games = get().games.map((game) => (game.id === id ? updated : game));
+        set({ games, loading: false });
+      }
       return updated;
     } catch (error) {
       set({ loading: false, error: (error as Error).message });
@@ -102,8 +110,12 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const reverted = await repository.undoLastChange(id);
-      const games = get().games.map((game) => (game.id === id ? reverted : game));
-      set({ games, loading: false });
+      if (useFirebase) {
+        set({ loading: false });
+      } else {
+        const games = get().games.map((game) => (game.id === id ? reverted : game));
+        set({ games, loading: false });
+      }
       return reverted;
     } catch (error) {
       set({ loading: false, error: (error as Error).message });
@@ -114,8 +126,12 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       await repository.deleteGame(id);
-      const games = get().games.filter((game) => game.id !== id);
-      set({ games, loading: false });
+      if (useFirebase) {
+        set({ loading: false });
+      } else {
+        const games = get().games.filter((game) => game.id !== id);
+        set({ games, loading: false });
+      }
     } catch (error) {
       set({ loading: false, error: (error as Error).message });
       throw error;
