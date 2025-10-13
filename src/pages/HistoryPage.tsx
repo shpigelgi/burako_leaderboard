@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useScoreStore } from '../store/useScoreStore';
-import type { GameId, GameRecord, PlayerId } from '../types';
+import type { GameId, GameRecord, PairId, PlayerId } from '../types';
 
 interface EditState {
-  scores: Record<PlayerId, number>;
+  teamTotals: Record<PairId, number>;
   notes: string;
   playedAt: string;
 }
@@ -43,8 +43,8 @@ export function HistoryPage() {
     setDrafts((current) => ({
       ...current,
       [game.id]: {
-        scores: Object.fromEntries(game.scores.map((score) => [score.playerId, score.points])) as Record<
-          PlayerId,
+        teamTotals: Object.fromEntries(game.teams.map((team) => [team.pairId, team.totalPoints])) as Record<
+          PairId,
           number
         >,
         notes: game.notes ?? '',
@@ -59,18 +59,24 @@ export function HistoryPage() {
     setErrorMessage(undefined);
   };
 
-  const handleScoreChange = (gameId: GameId, playerId: PlayerId) => (event: ChangeEvent<HTMLInputElement>) => {
+  const handleTeamTotalChange = (gameId: GameId, pairId: PairId) => (event: ChangeEvent<HTMLInputElement>) => {
     const value = Number.parseInt(event.target.value, 10);
-    setDrafts((current) => ({
-      ...current,
-      [gameId]: {
-        ...current[gameId],
-        scores: {
-          ...current[gameId].scores,
-          [playerId]: Number.isNaN(value) ? 0 : value,
+    setDrafts((current) => {
+      const draft = current[gameId];
+      if (!draft) {
+        return current;
+      }
+      return {
+        ...current,
+        [gameId]: {
+          ...draft,
+          teamTotals: {
+            ...draft.teamTotals,
+            [pairId]: Number.isNaN(value) ? 0 : value,
+          },
         },
-      },
-    }));
+      };
+    });
   };
 
   const handleNotesChange = (gameId: GameId) => (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -120,22 +126,26 @@ export function HistoryPage() {
       return;
     }
 
-    const updatedScores = game.scores.map((score) => ({
-      playerId: score.playerId,
-      points: draft.scores[score.playerId] ?? 0,
+    const updatedTeams = game.teams.map((team) => ({
+      ...team,
+      totalPoints: draft.teamTotals[team.pairId] ?? team.totalPoints,
     }));
 
-    const updatedTeams = game.teams.map((team) => {
+    const playerTotals = new Map<PlayerId, number>();
+    for (const team of updatedTeams) {
       const pair = pairLookup.get(team.pairId);
       if (!pair) {
-        return team;
+        continue;
       }
-      const totalPoints = pair.players.reduce((sum, playerId) => sum + (draft.scores[playerId] ?? 0), 0);
-      return {
-        ...team,
-        totalPoints,
-      };
-    });
+      for (const playerId of pair.players) {
+        playerTotals.set(playerId, team.totalPoints);
+      }
+    }
+
+    const updatedScores = game.scores.map((score) => ({
+      playerId: score.playerId,
+      points: playerTotals.get(score.playerId) ?? score.points,
+    }));
 
     const payload = {
       teams: updatedTeams,
@@ -261,20 +271,27 @@ export function HistoryPage() {
                 {isEditing ? (
                   <div className="history-card__body">
                     <div className="scores-grid">
-                      {game.scores.map((score) => (
-                        <div className="field" key={score.playerId}>
-                          <label className="field-label" htmlFor={`${game.id}-${score.playerId}`}>
-                            {playerLookup.get(score.playerId)}
-                          </label>
-                          <input
-                            id={`${game.id}-${score.playerId}`}
-                            className="field-control"
-                            type="number"
-                            value={draft?.scores[score.playerId] ?? score.points}
-                            onChange={handleScoreChange(game.id, score.playerId)}
-                          />
-                        </div>
-                      ))}
+                      {game.teams.map((team) => {
+                        const pair = pairLookup.get(team.pairId);
+                        const label = pair
+                          ? pair.players.map((playerId) => playerLookup.get(playerId) ?? playerId).join(' & ')
+                          : team.pairId;
+                        return (
+                          <div className="field" key={team.pairId}>
+                            <label className="field-label" htmlFor={`${game.id}-${team.pairId}`}>
+                              {label}
+                            </label>
+                            <input
+                              id={`${game.id}-${team.pairId}`}
+                              className="field-control"
+                              type="number"
+                              value={draft && draft.teamTotals[team.pairId] !== undefined ? draft.teamTotals[team.pairId] : ''}
+                              placeholder={(draft?.teamTotals[team.pairId] ?? team.totalPoints).toString()}
+                              onChange={handleTeamTotalChange(game.id, team.pairId)}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="field full-width">
                       <label className="field-label" htmlFor={`${game.id}-notes`}>

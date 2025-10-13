@@ -588,23 +588,6 @@ export function AddGamePage() {
           onChange={(event) => setPlayedAtInput(event.target.value)}
         />
       </div>
-      <div className="field">
-        <label className="field-label" htmlFor="matchup">Matchup</label>
-        <select
-          id="matchup"
-          className="field-control"
-          value={selectedMatchupId}
-          onChange={handleMatchupChange}
-          required
-        >
-          <option value="">Select matchup</option>
-          {matchups.map((matchup) => (
-            <option key={matchup.id} value={matchup.id}>
-              {matchup.label}
-            </option>
-          ))}
-        </select>
-      </div>
       {!isFormReady ? (
         <div className="status-card">Roster is loading…</div>
       ) : (
