@@ -134,9 +134,9 @@ export function LeaderboardPage() {
             </tr>
           </thead>
           <tbody>
-            {gameLeaderboard.map((entry, index) => (
+            {gameLeaderboard.map((entry) => (
               <tr key={entry.gameId}>
-                <td data-label="Game #">{index + 1}</td>
+                <td data-label="Game #">{entry.gameNumber}</td>
                 <td data-label="Played">{new Date(entry.playedAt).toLocaleString()}</td>
                 <td data-label="Winner">{pairLabel(entry.winningPairId)}</td>
                 <td data-label="Winning Points">{entry.winningPoints}</td>

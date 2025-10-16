@@ -148,6 +148,7 @@ export interface PairLeaderboardEntry {
 export interface GameLeaderboardEntry {
   gameId: GameId;
   playedAt: string;
+  gameNumber: number;
   winningPairId: PairId;
   winningPoints: number;
   losingPairId: PairId;

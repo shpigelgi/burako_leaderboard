@@ -94,6 +94,11 @@ export function calculatePairLeaderboard(records: GameRecord[]): PairLeaderboard
 }
 
 export function calculateGameLeaderboard(records: GameRecord[]): GameLeaderboardEntry[] {
+  const chronologicalOrder = [...records]
+    .sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime())
+    .map((record, index) => [record.id, index + 1] as const);
+  const gameNumberLookup = new Map<string, number>(chronologicalOrder);
+
   return records
     .map((record) => {
       const sortedTeams = [...record.teams].sort((a, b) => b.totalPoints - a.totalPoints);
@@ -112,6 +117,7 @@ export function calculateGameLeaderboard(records: GameRecord[]): GameLeaderboard
       return {
         gameId: record.id,
         playedAt: record.playedAt,
+        gameNumber: gameNumberLookup.get(record.id) ?? 0,
         winningPairId: winning.pairId,
         winningPoints: winning.totalPoints,
         losingPairId: losing.pairId,
