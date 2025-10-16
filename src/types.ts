@@ -100,6 +100,7 @@ export interface GameSnapshot {
   scores: GameScore[];
   notes?: string;
   playedAt?: string;
+  startingPairId?: PairId;
 }
 
 export interface GameRecord {
@@ -109,6 +110,7 @@ export interface GameRecord {
   scores: GameScore[];
   notes?: string;
   auditTrail: AuditEntry[];
+  startingPairId?: PairId;
 }
 
 export interface NewGameInput {
@@ -116,6 +118,7 @@ export interface NewGameInput {
   teams: TeamResult[];
   scores: GameScore[];
   notes?: string;
+  startingPairId?: PairId;
 }
 
 export interface GameUpdate {
@@ -123,6 +126,7 @@ export interface GameUpdate {
   scores?: GameScore[];
   notes?: string;
   playedAt?: string;
+  startingPairId?: PairId;
 }
 
 export interface LeaderboardEntry {

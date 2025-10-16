@@ -29,6 +29,8 @@ interface TeamFormState {
   tookMuerto: boolean;
   winner: boolean;
   cardCounts: CardCountBreakdown;
+  minusCardCounts: CardCountBreakdown;
+  useManualMinusCards: boolean;
 }
 
 type NumericTeamField =
@@ -95,6 +97,8 @@ const createTeamState = (pairId: PairId | '' = ''): TeamFormState => ({
   tookMuerto: false,
   winner: false,
   cardCounts: createCardCounts(),
+  minusCardCounts: createCardCounts(),
+  useManualMinusCards: false,
 });
 
 const calculateCardPointsFromCounts = (counts: CardCountBreakdown): number =>
@@ -264,6 +268,42 @@ export function AddGamePage() {
       }));
     };
 
+  const handleMinusCardCountChange = (team: 'A' | 'B', field: CardCountField) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const value = Number.parseInt(event.target.value, 10);
+      const normalized = Number.isNaN(value) ? 0 : Math.max(0, value);
+      updateTeamState(team, (current) => {
+        const minusCardCounts = {
+          ...current.minusCardCounts,
+          [field]: normalized,
+        };
+        return {
+          ...current,
+          minusCardCounts,
+          minusPoints: calculateCardPointsFromCounts(minusCardCounts),
+        };
+      });
+    };
+
+  const handleManualMinusCardsToggle = (team: 'A' | 'B') =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const checked = event.target.checked;
+      updateTeamState(team, (current) => {
+        if (checked) {
+          return {
+            ...current,
+            useManualMinusCards: true,
+            minusPoints: calculateCardPointsFromCounts(current.minusCardCounts),
+          };
+        }
+        return {
+          ...current,
+          useManualMinusCards: false,
+          minusCardCounts: createCardCounts(),
+        };
+      });
+    };
+
   const handleScoringModeChange = (team: 'A' | 'B') => (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value as ScoringMode;
     updateTeamState(team, (current) => {
@@ -277,6 +317,8 @@ export function AddGamePage() {
           tookMuerto: false,
           winner: false,
           cardCounts: createCardCounts(),
+          minusCardCounts: createCardCounts(),
+          useManualMinusCards: false,
         };
       }
       if (value === 'summary') {
@@ -288,6 +330,8 @@ export function AddGamePage() {
           tookMuerto: false,
           winner: false,
           cardCounts: createCardCounts(),
+          minusCardCounts: createCardCounts(),
+          useManualMinusCards: false,
         };
       }
       return {
@@ -297,6 +341,8 @@ export function AddGamePage() {
         tookMuerto: false,
         winner: false,
         cardCounts: createCardCounts(),
+        minusCardCounts: createCardCounts(),
+        useManualMinusCards: false,
       };
     });
   };
@@ -537,10 +583,42 @@ export function AddGamePage() {
                 min={0}
                 value={team.minusPoints === 0 ? '' : team.minusPoints}
                 onChange={handleNumericTeamChange(key, 'minusPoints')}
+                disabled={team.useManualMinusCards}
                 onFocus={handleSelectOnFocus}
                 placeholder="0"
               />
             </div>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={team.useManualMinusCards}
+                onChange={handleManualMinusCardsToggle(key)}
+              />
+              Enter minus via card counts
+            </label>
+            {team.useManualMinusCards ? (
+              <div className="field grid">
+                {cardCountOptions.map((option) => (
+                  <div key={`minus-${option.field}`} className="field">
+                    <label className="field-label" htmlFor={`${prefix}-minus-${option.field}`}>
+                      {option.label}
+                    </label>
+                    <input
+                      id={`${prefix}-minus-${option.field}`}
+                      className="field-control"
+                      type="number"
+                      min={0}
+                      value={
+                        team.minusCardCounts[option.field] === 0 ? '' : team.minusCardCounts[option.field]
+                      }
+                      onChange={handleMinusCardCountChange(key, option.field)}
+                      onFocus={handleSelectOnFocus}
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div className="field checkbox-row">
               <label className="checkbox">
                 <input

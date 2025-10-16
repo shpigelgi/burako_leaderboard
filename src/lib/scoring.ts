@@ -64,7 +64,8 @@ const formatBreakdown = (components: ScoreComponentBreakdown): string => {
     parts.push(`Canastas ${components.canastaPoints}`);
   }
   if (components.winnerBonus) {
-    parts.push(`Winner +${components.winnerBonus}`);
+    const sign = components.winnerBonus > 0 ? '+' : '';
+    parts.push(`Winner ${sign}${components.winnerBonus}`);
   }
   if (components.muertoBonus) {
     const sign = components.muertoBonus > 0 ? '+' : '';
@@ -91,19 +92,23 @@ export const calculateManualScore = ({ total }: ManualScoreInput): ScoreComputat
 export const calculateSummaryScore = (input: SummaryScoreInput): ScoreComputation => {
   const canastaPoints = calculateCanastaPoints(input.cleanCanastas, input.dirtyCanastas);
   const { winnerBonus, muertoBonus } = calculateBonusComponents(input.winner, input.tookMuerto);
+  const hasCanasta = input.cleanCanastas + input.dirtyCanastas > 0;
+
+  const adjustedCardPoints = hasCanasta ? input.cardPoints : -input.cardPoints;
+  const adjustedWinnerBonus = hasCanasta ? winnerBonus : winnerBonus ? -winnerBonus : 0;
 
   const components: ScoreComponentBreakdown = {
-    cardPoints: input.cardPoints,
+    cardPoints: adjustedCardPoints,
     canastaPoints,
-    winnerBonus,
+    winnerBonus: adjustedWinnerBonus,
     muertoBonus,
     minusPoints: input.minusPoints,
   };
 
   const total =
-    input.cardPoints +
+    adjustedCardPoints +
     canastaPoints +
-    winnerBonus +
+    adjustedWinnerBonus +
     muertoBonus -
     input.minusPoints;
 
