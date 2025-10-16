@@ -144,3 +144,13 @@ export interface PairLeaderboardEntry {
   averagePoints: number;
   lastPlayedAt?: string;
 }
+
+export interface GameLeaderboardEntry {
+  gameId: GameId;
+  playedAt: string;
+  winningPairId: PairId;
+  winningPoints: number;
+  losingPairId: PairId;
+  losingPoints: number;
+  margin: number;
+}

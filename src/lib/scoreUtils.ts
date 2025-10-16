@@ -1,4 +1,5 @@
 import type {
+  GameLeaderboardEntry,
   GameRecord,
   LeaderboardEntry,
   PairId,
@@ -90,4 +91,34 @@ export function calculatePairLeaderboard(records: GameRecord[]): PairLeaderboard
       lastPlayedAt: aggregate.lastPlayedAt,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints || b.averagePoints - a.averagePoints);
+}
+
+export function calculateGameLeaderboard(records: GameRecord[]): GameLeaderboardEntry[] {
+  return records
+    .map((record) => {
+      const sortedTeams = [...record.teams].sort((a, b) => b.totalPoints - a.totalPoints);
+      const winning = sortedTeams[0];
+      const losing = sortedTeams[sortedTeams.length - 1];
+
+      if (!winning || !losing) {
+        return undefined;
+      }
+
+      const margin = winning.totalPoints - losing.totalPoints;
+      if (margin <= 0) {
+        return undefined;
+      }
+
+      return {
+        gameId: record.id,
+        playedAt: record.playedAt,
+        winningPairId: winning.pairId,
+        winningPoints: winning.totalPoints,
+        losingPairId: losing.pairId,
+        losingPoints: losing.totalPoints,
+        margin,
+      } satisfies GameLeaderboardEntry;
+    })
+    .filter((entry): entry is GameLeaderboardEntry => entry !== undefined)
+    .sort((a, b) => b.margin - a.margin || b.winningPoints - a.winningPoints);
 }
