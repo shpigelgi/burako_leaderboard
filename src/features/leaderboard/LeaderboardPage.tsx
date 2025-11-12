@@ -23,10 +23,6 @@ export function LeaderboardPage() {
 
   const [selected, setSelected] = useState<LeaderboardType>('players');
 
-  // Debug: Log pairs to see if they're loaded
-  console.log('LeaderboardPage - pairs:', pairs.length, pairs);
-  console.log('LeaderboardPage - games:', games.length);
-
   const leaderboard = useMemo(() => calculateLeaderboard(games), [games]);
   const pairLeaderboard = useMemo(() => calculatePairLeaderboard(games), [games]);
   const gameLeaderboard = useMemo(() => calculateGameLeaderboard(games), [games]);
@@ -42,39 +38,22 @@ export function LeaderboardPage() {
 
   const pairLabel = (pairId: string) => {
     const pair = pairLookup.get(pairId);
-    if (pair) {
-      return pair.players
-        .map((playerId) => {
-          const player = playerLookup.get(playerId);
-          return player?.name ?? 'Unknown';
-        })
-        .join(' & ');
+    if (!pair) {
+      return 'Unknown';
     }
     
-    // Fallback: Try to find this pair in any game and extract player names
-    // by matching scores to team total
-    for (const game of games) {
-      const team = game.teams.find(t => t.pairId === pairId);
-      if (team) {
-        // Find which 2 players' scores sum to this team's total
-        const scores = game.scores;
-        for (let i = 0; i < scores.length; i++) {
-          for (let j = i + 1; j < scores.length; j++) {
-            if (scores[i].points + scores[j].points === team.totalPoints) {
-              const names = [scores[i].playerId, scores[j].playerId]
-                .map(playerId => {
-                  const player = playerLookup.get(playerId);
-                  return player?.name ?? 'Unknown';
-                });
-              return names.join(' & ');
-            }
-          }
-        }
-      }
-    }
-    
-    return `Unknown Pair (${pairId})`;
+    return pair.players
+      .map((playerId) => {
+        const player = playerLookup.get(playerId);
+        return player?.name ?? 'Unknown';
+      })
+      .join(' & ');
   };
+
+  // Check if any pairs are missing
+  const hasMissingPairs = useMemo(() => {
+    return pairLeaderboard.some(entry => !pairLookup.get(entry.pairId));
+  }, [pairLeaderboard, pairLookup]);
 
   const renderPlayers = () => {
     if (loading) {
@@ -142,6 +121,11 @@ export function LeaderboardPage() {
     return (
       <>
         <h2 className="section-title">Top Pairs</h2>
+        {hasMissingPairs && (
+          <div className="status-card error">
+            ⚠️ Warning: Some pairs could not be found. Pair data may be incomplete.
+          </div>
+        )}
         <table className="table">
           <thead>
             <tr>
