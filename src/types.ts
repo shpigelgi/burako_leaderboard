@@ -4,6 +4,8 @@ export type PairId = string;
 
 export type GameId = string;
 
+export type GroupId = string;
+
 export type ScoringMode = 'manual' | 'summary' | 'cards';
 
 export interface Player {
@@ -11,8 +13,15 @@ export interface Player {
   name: string;
 }
 
+export interface Group {
+  id: GroupId;
+  name: string;
+  createdAt: string;
+}
+
 export interface Pair {
   id: PairId;
+  groupId: GroupId;
   players: [PlayerId, PlayerId];
 }
 
@@ -105,6 +114,7 @@ export interface GameSnapshot {
 
 export interface GameRecord {
   id: GameId;
+  groupId: GroupId;
   playedAt: string;
   teams: TeamResult[];
   scores: GameScore[];

@@ -3,15 +3,19 @@ import type {
   GameRecord,
   GameSnapshot,
   GameUpdate,
+  Group,
+  GroupId,
   NewGameInput,
   Pair,
   Player,
 } from '../types';
-import { mockGames, mockPairs, mockPlayers } from '../data/mockData';
+import { DEFAULT_GROUP_ID, mockGames, mockPairs, mockPlayers } from '../data/mockData';
 import { createId } from '../lib/id';
 import type { ScoreRepository } from './scoreRepository';
 
-const STORAGE_KEY = 'burako-games';
+const GROUPS_KEY = 'burako-groups';
+const PLAYERS_KEY = 'burako-players';
+const STORAGE_PREFIX = 'burako-group-';
 
 const getStorage = () => {
   if (typeof window === 'undefined' || !window.localStorage) {
@@ -50,54 +54,191 @@ const createSnapshot = (game: GameRecord): GameSnapshot => ({
   playedAt: game.playedAt,
 });
 
-const readGames = (): GameRecord[] => {
+interface GroupData {
+  members: string[];
+  pairs: Pair[];
+  games: GameRecord[];
+}
+
+const readGroups = (): Group[] => {
   const storage = getStorage();
   if (!storage) {
-    return mockGames.map(cloneGame);
+    return [];
   }
-
-  const raw = storage.getItem(STORAGE_KEY);
+  const raw = storage.getItem(GROUPS_KEY);
   if (!raw) {
-    storage.setItem(STORAGE_KEY, JSON.stringify(mockGames));
-    return mockGames.map(cloneGame);
+    return [];
   }
   try {
-    const parsed = JSON.parse(raw) as GameRecord[];
-    return parsed.map(cloneGame);
+    return JSON.parse(raw) as Group[];
   } catch {
-    storage.setItem(STORAGE_KEY, JSON.stringify(mockGames));
-    return mockGames.map(cloneGame);
+    return [];
   }
 };
 
-const writeGames = (games: GameRecord[]): void => {
+const writeGroups = (groups: Group[]): void => {
   const storage = getStorage();
   if (!storage) {
     return;
   }
-  storage.setItem(STORAGE_KEY, JSON.stringify(games));
+  storage.setItem(GROUPS_KEY, JSON.stringify(groups));
+};
+
+const readGroupData = (groupId: GroupId): GroupData => {
+  const storage = getStorage();
+  if (!storage) {
+    return { members: [], pairs: [], games: [] };
+  }
+  const key = `${STORAGE_PREFIX}${groupId}`;
+  const raw = storage.getItem(key);
+  if (!raw) {
+    return { members: [], pairs: [], games: [] };
+  }
+  try {
+    return JSON.parse(raw) as GroupData;
+  } catch {
+    return { members: [], pairs: [], games: [] };
+  }
+};
+
+const writeGroupData = (groupId: GroupId, data: GroupData): void => {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+  const key = `${STORAGE_PREFIX}${groupId}`;
+  storage.setItem(key, JSON.stringify(data));
+};
+
+const readAllPlayers = (): Player[] => {
+  const storage = getStorage();
+  if (!storage) {
+    return mockPlayers.map((p) => ({ ...p }));
+  }
+  const raw = storage.getItem(PLAYERS_KEY);
+  if (!raw) {
+    storage.setItem(PLAYERS_KEY, JSON.stringify(mockPlayers));
+    return mockPlayers.map((p) => ({ ...p }));
+  }
+  try {
+    return JSON.parse(raw) as Player[];
+  } catch {
+    storage.setItem(PLAYERS_KEY, JSON.stringify(mockPlayers));
+    return mockPlayers.map((p) => ({ ...p }));
+  }
+};
+
+const writeAllPlayers = (players: Player[]): void => {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+  storage.setItem(PLAYERS_KEY, JSON.stringify(players));
 };
 
 export class LocalScoreRepository implements ScoreRepository {
-  async listPlayers(): Promise<Player[]> {
-    return mockPlayers.map((player) => ({ ...player }));
+  // Group management
+  async listGroups(): Promise<Group[]> {
+    return readGroups();
   }
 
-  async listPairs(): Promise<Pair[]> {
-    return mockPairs.map((pair) => ({ ...pair, players: [...pair.players] }));
+  async createGroup(name: string): Promise<Group> {
+    const groups = readGroups();
+    const group: Group = {
+      id: createId('group'),
+      name,
+      createdAt: new Date().toISOString(),
+    };
+    groups.push(group);
+    writeGroups(groups);
+    
+    // Initialize empty group data
+    writeGroupData(group.id, { members: [], pairs: [], games: [] });
+    
+    return group;
   }
 
-  async listGames(): Promise<GameRecord[]> {
-    return readGames();
+  async deleteGroup(groupId: GroupId): Promise<void> {
+    const groups = readGroups();
+    const filtered = groups.filter((g) => g.id !== groupId);
+    writeGroups(filtered);
+    
+    // Delete group data
+    const storage = getStorage();
+    if (storage) {
+      storage.removeItem(`${STORAGE_PREFIX}${groupId}`);
+    }
   }
 
-  async addGame(input: NewGameInput): Promise<GameRecord> {
-    const games = readGames();
+  // Player management (global)
+  async listAllPlayers(): Promise<Player[]> {
+    return readAllPlayers();
+  }
+
+  async createPlayer(name: string): Promise<Player> {
+    const players = readAllPlayers();
+    const player: Player = {
+      id: createId('player'),
+      name,
+    };
+    players.push(player);
+    writeAllPlayers(players);
+    return player;
+  }
+
+  // Group membership
+  async listGroupMembers(groupId: GroupId): Promise<Player[]> {
+    const data = readGroupData(groupId);
+    const allPlayers = readAllPlayers();
+    return allPlayers.filter((p) => data.members.includes(p.id));
+  }
+
+  async addPlayerToGroup(groupId: GroupId, playerId: string): Promise<void> {
+    const data = readGroupData(groupId);
+    if (!data.members.includes(playerId)) {
+      data.members.push(playerId);
+      writeGroupData(groupId, data);
+    }
+  }
+
+  async removePlayerFromGroup(groupId: GroupId, playerId: string): Promise<void> {
+    const data = readGroupData(groupId);
+    data.members = data.members.filter((id) => id !== playerId);
+    writeGroupData(groupId, data);
+  }
+
+  // Pairs (group-scoped)
+  async listPairs(groupId: GroupId): Promise<Pair[]> {
+    const data = readGroupData(groupId);
+    return data.pairs.map((pair) => ({ ...pair, players: [...pair.players] }));
+  }
+
+  async createPair(groupId: GroupId, players: [string, string]): Promise<Pair> {
+    const data = readGroupData(groupId);
+    const pair: Pair = {
+      id: createId('pair'),
+      groupId,
+      players,
+    };
+    data.pairs.push(pair);
+    writeGroupData(groupId, data);
+    return pair;
+  }
+
+  // Games (group-scoped)
+  async listGames(groupId: GroupId): Promise<GameRecord[]> {
+    const data = readGroupData(groupId);
+    return data.games.map(cloneGame);
+  }
+
+  async addGame(groupId: GroupId, input: NewGameInput): Promise<GameRecord> {
+    const data = readGroupData(groupId);
     const nowIso = new Date().toISOString();
     const gameId: GameId = createId('game');
 
     const baseRecord: GameRecord = {
       id: gameId,
+      groupId,
       playedAt: input.playedAt ?? nowIso,
       teams: input.teams.map((team) => ({
         ...team,
@@ -119,20 +260,19 @@ export class LocalScoreRepository implements ScoreRepository {
     };
 
     baseRecord.auditTrail.push(auditEntry);
-
-    const nextGames = [...games, baseRecord];
-    writeGames(nextGames);
+    data.games.push(baseRecord);
+    writeGroupData(groupId, data);
     return cloneGame(baseRecord);
   }
 
-  async updateGame(id: GameId, update: GameUpdate): Promise<GameRecord> {
-    const games = readGames();
-    const index = games.findIndex((game) => game.id === id);
+  async updateGame(groupId: GroupId, id: GameId, update: GameUpdate): Promise<GameRecord> {
+    const data = readGroupData(groupId);
+    const index = data.games.findIndex((game) => game.id === id);
     if (index === -1) {
       throw new Error('Game not found');
     }
 
-    const current = games[index];
+    const current = data.games[index];
     const snapshot = createSnapshot(current);
 
     if (update.teams) {
@@ -164,19 +304,19 @@ export class LocalScoreRepository implements ScoreRepository {
       snapshot,
     });
 
-    games[index] = current;
-    writeGames(games);
+    data.games[index] = current;
+    writeGroupData(groupId, data);
     return cloneGame(current);
   }
 
-  async undoLastChange(id: GameId): Promise<GameRecord> {
-    const games = readGames();
-    const index = games.findIndex((game) => game.id === id);
+  async undoLastChange(groupId: GroupId, id: GameId): Promise<GameRecord> {
+    const data = readGroupData(groupId);
+    const index = data.games.findIndex((game) => game.id === id);
     if (index === -1) {
       throw new Error('Game not found');
     }
 
-    const current = games[index];
+    const current = data.games[index];
     if (current.auditTrail.length <= 1) {
       throw new Error('Nothing to undo');
     }
@@ -207,18 +347,44 @@ export class LocalScoreRepository implements ScoreRepository {
       snapshot: createSnapshot(current),
     });
 
-    games[index] = current;
-    writeGames(games);
+    data.games[index] = current;
+    writeGroupData(groupId, data);
     return cloneGame(current);
   }
 
-  async deleteGame(id: GameId): Promise<void> {
-    const games = readGames();
-    const index = games.findIndex((game) => game.id === id);
+  async deleteGame(groupId: GroupId, id: GameId): Promise<void> {
+    const data = readGroupData(groupId);
+    const index = data.games.findIndex((game) => game.id === id);
     if (index === -1) {
       throw new Error('Game not found');
     }
-    games.splice(index, 1);
-    writeGames(games);
+    data.games.splice(index, 1);
+    writeGroupData(groupId, data);
+  }
+
+  // Legacy methods for migration
+  async legacyListPlayers(): Promise<Player[]> {
+    return readAllPlayers();
+  }
+
+  async legacyListPairs(): Promise<Pair[]> {
+    return mockPairs.map((pair) => ({ ...pair, players: [...pair.players] }));
+  }
+
+  async legacyListGames(): Promise<GameRecord[]> {
+    const storage = getStorage();
+    if (!storage) {
+      return mockGames.map(cloneGame);
+    }
+    const raw = storage.getItem('burako-games');
+    if (!raw) {
+      return mockGames.map(cloneGame);
+    }
+    try {
+      const parsed = JSON.parse(raw) as GameRecord[];
+      return parsed.map((g) => ({ ...cloneGame(g), groupId: DEFAULT_GROUP_ID }));
+    } catch {
+      return mockGames.map(cloneGame);
+    }
   }
 }

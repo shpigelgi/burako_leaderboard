@@ -5,6 +5,7 @@ import { AddGamePage } from './pages/AddGamePage.tsx';
 import { InfoPage } from './pages/InfoPage.tsx';
 import { HistoryPage } from './pages/HistoryPage.tsx';
 import { LeaderboardPage } from './pages/LeaderboardPage.tsx';
+import { GroupsPage } from './pages/GroupsPage.tsx';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/info" element={<InfoPage />} />
         <Route path="/add" element={<AddGamePage />} />
+        <Route path="/groups" element={<GroupsPage />} />
         <Route path="*" element={<Navigate to="/leaderboard" replace />} />
       </Route>
     </Routes>

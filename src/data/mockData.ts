@@ -28,18 +28,21 @@ export const mockPlayers: Player[] = [
   { id: 'player-4', name: 'Gilad' },
 ];
 
+export const DEFAULT_GROUP_ID = 'group-default';
+
 export const mockPairs: Pair[] = [
-  { id: 'pair-1', players: ['player-1', 'player-2'] },
-  { id: 'pair-2', players: ['player-1', 'player-3'] },
-  { id: 'pair-3', players: ['player-1', 'player-4'] },
-  { id: 'pair-4', players: ['player-2', 'player-3'] },
-  { id: 'pair-5', players: ['player-2', 'player-4'] },
-  { id: 'pair-6', players: ['player-3', 'player-4'] },
+  { id: 'pair-1', groupId: DEFAULT_GROUP_ID, players: ['player-1', 'player-2'] },
+  { id: 'pair-2', groupId: DEFAULT_GROUP_ID, players: ['player-1', 'player-3'] },
+  { id: 'pair-3', groupId: DEFAULT_GROUP_ID, players: ['player-1', 'player-4'] },
+  { id: 'pair-4', groupId: DEFAULT_GROUP_ID, players: ['player-2', 'player-3'] },
+  { id: 'pair-5', groupId: DEFAULT_GROUP_ID, players: ['player-2', 'player-4'] },
+  { id: 'pair-6', groupId: DEFAULT_GROUP_ID, players: ['player-3', 'player-4'] },
 ];
 
 const initialGames: GameRecord[] = [
   {
     id: 'game-1',
+    groupId: DEFAULT_GROUP_ID,
     playedAt: '2025-01-03T18:45:00.000Z',
     teams: [
       {
@@ -97,6 +100,7 @@ const initialGames: GameRecord[] = [
   },
   {
     id: 'game-2',
+    groupId: DEFAULT_GROUP_ID,
     playedAt: '2025-01-10T19:30:00.000Z',
     teams: [
       {

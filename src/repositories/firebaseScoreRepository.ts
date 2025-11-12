@@ -9,11 +9,12 @@ import {
   runTransaction,
   setDoc,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import type { DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { createId } from '../lib/id';
-import { mockPairs, mockPlayers } from '../data/mockData';
+import { DEFAULT_GROUP_ID } from '../data/mockData';
 import type {
   AuditEntry,
   GameId,
@@ -21,6 +22,8 @@ import type {
   GameScore,
   GameSnapshot,
   GameUpdate,
+  Group,
+  GroupId,
   NewGameInput,
   Pair,
   Player,
@@ -28,9 +31,8 @@ import type {
 } from '../types';
 import type { ScoreRepository } from './scoreRepository';
 
+const groupsCollection = collection(db, 'groups');
 const playersCollection = collection(db, 'players');
-const pairsCollection = collection(db, 'pairs');
-const gamesCollection = collection(db, 'games');
 
 const toNullable = (value: unknown) => (value === undefined ? null : value);
 
@@ -63,8 +65,9 @@ const auditEntryFromData = (entry: DocumentData): AuditEntry => ({
   },
 });
 
-const gameRecordFromDoc = (docData: DocumentData, id: string): GameRecord => ({
+const gameRecordFromDoc = (docData: DocumentData, id: string, groupId: GroupId): GameRecord => ({
   id,
+  groupId,
   playedAt: toIsoString(docData.playedAt),
   teams: ensureArray<TeamResult>(docData.teams, []),
   scores: ensureArray<GameScore>(docData.scores, []),
@@ -92,50 +95,134 @@ const buildSnapshot = (
 };
 
 export class FirebaseScoreRepository implements ScoreRepository {
-  private seeded = false;
-
-  private async ensureSeedData() {
-    if (this.seeded) {
-      return;
-    }
-    this.seeded = true;
-
-    const [playerSnapshot, pairSnapshot] = await Promise.all([
-      getDocs(query(playersCollection)),
-      getDocs(query(pairsCollection)),
-    ]);
-
-    if (playerSnapshot.empty) {
-      await Promise.all(
-        mockPlayers.map((player) => setDoc(doc(playersCollection, player.id), player, { merge: true })),
-      );
-    }
-
-    if (pairSnapshot.empty) {
-      await Promise.all(
-        mockPairs.map((pair) => setDoc(doc(pairsCollection, pair.id), pair, { merge: true })),
-      );
-    }
+  // Group management
+  async listGroups(): Promise<Group[]> {
+    const snapshot = await getDocs(query(groupsCollection));
+    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Group);
   }
 
-  async listPlayers(): Promise<Player[]> {
-    await this.ensureSeedData();
+  async createGroup(name: string): Promise<Group> {
+    const groupDoc = doc(groupsCollection);
+    const group: Group = {
+      id: groupDoc.id,
+      name,
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(groupDoc, group);
+    return group;
+  }
+
+  async deleteGroup(groupId: GroupId): Promise<void> {
+    const batch = writeBatch(db);
+    
+    // Delete group document
+    batch.delete(doc(groupsCollection, groupId));
+    
+    // Delete all subcollections (members, pairs, games)
+    const membersSnapshot = await getDocs(collection(db, `groups/${groupId}/members`));
+    membersSnapshot.docs.forEach((docSnapshot) => {
+      batch.delete(docSnapshot.ref);
+    });
+    
+    const pairsSnapshot = await getDocs(collection(db, `groups/${groupId}/pairs`));
+    pairsSnapshot.docs.forEach((docSnapshot) => {
+      batch.delete(docSnapshot.ref);
+    });
+    
+    const gamesSnapshot = await getDocs(collection(db, `groups/${groupId}/games`));
+    gamesSnapshot.docs.forEach((docSnapshot) => {
+      batch.delete(docSnapshot.ref);
+    });
+    
+    await batch.commit();
+  }
+
+  // Player management (global)
+  async listAllPlayers(): Promise<Player[]> {
     const snapshot = await getDocs(query(playersCollection));
     return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Player);
   }
 
-  async listPairs(): Promise<Pair[]> {
-    await this.ensureSeedData();
+  async createPlayer(name: string): Promise<Player> {
+    const playerDoc = doc(playersCollection);
+    const player: Player = {
+      id: playerDoc.id,
+      name,
+    };
+    await setDoc(playerDoc, player);
+    return player;
+  }
+
+  // Group membership
+  async listGroupMembers(groupId: GroupId): Promise<Player[]> {
+    const membersCollection = collection(db, `groups/${groupId}/members`);
+    const snapshot = await getDocs(query(membersCollection));
+    const playerIds = snapshot.docs.map((docSnapshot) => docSnapshot.id);
+    
+    if (playerIds.length === 0) {
+      return [];
+    }
+    
+    // Fetch player details
+    const players: Player[] = [];
+    for (const playerId of playerIds) {
+      const playerDoc = await getDoc(doc(playersCollection, playerId));
+      if (playerDoc.exists()) {
+        players.push(playerDoc.data() as Player);
+      }
+    }
+    return players;
+  }
+
+  async addPlayerToGroup(groupId: GroupId, playerId: string): Promise<void> {
+    const memberDoc = doc(db, `groups/${groupId}/members/${playerId}`);
+    await setDoc(memberDoc, {
+      joinedAt: new Date().toISOString(),
+    });
+  }
+
+  async removePlayerFromGroup(groupId: GroupId, playerId: string): Promise<void> {
+    const memberDoc = doc(db, `groups/${groupId}/members/${playerId}`);
+    await deleteDoc(memberDoc);
+  }
+
+  // Pairs (group-scoped)
+  async listPairs(groupId: GroupId): Promise<Pair[]> {
+    const pairsCollection = collection(db, `groups/${groupId}/pairs`);
     const snapshot = await getDocs(query(pairsCollection));
-    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Pair);
+    return snapshot.docs.map((docSnapshot) => {
+      const data = docSnapshot.data();
+      return {
+        id: docSnapshot.id,
+        groupId,
+        players: data.players as [string, string],
+      };
+    });
   }
 
-  async listGames(): Promise<GameRecord[]> {
+  async createPair(groupId: GroupId, players: [string, string]): Promise<Pair> {
+    const pairsCollection = collection(db, `groups/${groupId}/pairs`);
+    const pairDoc = doc(pairsCollection);
+    const pair: Pair = {
+      id: pairDoc.id,
+      groupId,
+      players,
+    };
+    await setDoc(pairDoc, { players });
+    return pair;
+  }
+
+  // Games (group-scoped)
+  async listGames(groupId: GroupId): Promise<GameRecord[]> {
+    const gamesCollection = collection(db, `groups/${groupId}/games`);
     const snapshot = await getDocs(query(gamesCollection));
-    return snapshot.docs.map((docSnapshot) => gameRecordFromDoc(docSnapshot.data(), docSnapshot.id));
+    return snapshot.docs.map((docSnapshot) =>
+      gameRecordFromDoc(docSnapshot.data(), docSnapshot.id, groupId),
+    );
   }
 
-  async addGame(input: NewGameInput): Promise<GameRecord> {
+  async addGame(groupId: GroupId, input: NewGameInput): Promise<GameRecord> {
+    const gamesCollection = collection(db, `groups/${groupId}/games`);
     const gameDoc = doc(gamesCollection);
     const gameId = gameDoc.id;
     const playedAt = input.playedAt ?? new Date().toISOString();
@@ -159,11 +246,11 @@ export class FirebaseScoreRepository implements ScoreRepository {
     });
 
     const createdDoc = await getDoc(gameDoc);
-    return gameRecordFromDoc(createdDoc.data() ?? {}, gameId);
+    return gameRecordFromDoc(createdDoc.data() ?? {}, gameId, groupId);
   }
 
-  async updateGame(id: GameId, update: GameUpdate): Promise<GameRecord> {
-    const gameDoc = doc(gamesCollection, id);
+  async updateGame(groupId: GroupId, id: GameId, update: GameUpdate): Promise<GameRecord> {
+    const gameDoc = doc(db, `groups/${groupId}/games/${id}`);
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(gameDoc);
@@ -203,11 +290,11 @@ export class FirebaseScoreRepository implements ScoreRepository {
     if (!updatedDoc.exists()) {
       throw new Error('Game not found');
     }
-    return gameRecordFromDoc(updatedDoc.data(), updatedDoc.id);
+    return gameRecordFromDoc(updatedDoc.data(), updatedDoc.id, groupId);
   }
 
-  async undoLastChange(id: GameId): Promise<GameRecord> {
-    const gameDoc = doc(gamesCollection, id);
+  async undoLastChange(groupId: GroupId, id: GameId): Promise<GameRecord> {
+    const gameDoc = doc(db, `groups/${groupId}/games/${id}`);
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(gameDoc);
@@ -255,25 +342,55 @@ export class FirebaseScoreRepository implements ScoreRepository {
     if (!updatedDoc.exists()) {
       throw new Error('Game not found');
     }
-    return gameRecordFromDoc(updatedDoc.data(), updatedDoc.id);
+    return gameRecordFromDoc(updatedDoc.data(), updatedDoc.id, groupId);
   }
 
-  async deleteGame(id: GameId): Promise<void> {
-    await deleteDoc(doc(gamesCollection, id));
+  async deleteGame(groupId: GroupId, id: GameId): Promise<void> {
+    await deleteDoc(doc(db, `groups/${groupId}/games/${id}`));
+  }
+
+  // Legacy methods for migration
+  async legacyListPlayers(): Promise<Player[]> {
+    const snapshot = await getDocs(query(playersCollection));
+    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Player);
+  }
+
+  async legacyListPairs(): Promise<Pair[]> {
+    const pairsCollection = collection(db, 'pairs');
+    const snapshot = await getDocs(query(pairsCollection));
+    return snapshot.docs.map((docSnapshot) => {
+      const data = docSnapshot.data();
+      return {
+        id: docSnapshot.id,
+        groupId: DEFAULT_GROUP_ID,
+        players: data.players as [string, string],
+      };
+    });
+  }
+
+  async legacyListGames(): Promise<GameRecord[]> {
+    const gamesCollection = collection(db, 'games');
+    const snapshot = await getDocs(query(gamesCollection));
+    return snapshot.docs.map((docSnapshot) =>
+      gameRecordFromDoc(docSnapshot.data(), docSnapshot.id, DEFAULT_GROUP_ID),
+    );
   }
 }
 
 export const subscribeToGames = (
+  groupId: GroupId,
   onChange: (records: GameRecord[]) => void,
   onError: (error: Error) => void,
-) =>
-  onSnapshot(
+) => {
+  const gamesCollection = collection(db, `groups/${groupId}/games`);
+  return onSnapshot(
     gamesCollection,
     (snapshot) => {
       const records = snapshot.docs.map((docSnapshot) =>
-        gameRecordFromDoc(docSnapshot.data(), docSnapshot.id),
+        gameRecordFromDoc(docSnapshot.data(), docSnapshot.id, groupId),
       );
       onChange(records);
     },
     (error) => onError(error as Error),
   );
+};
