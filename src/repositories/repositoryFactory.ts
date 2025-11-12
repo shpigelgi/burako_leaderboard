@@ -27,8 +27,6 @@ class RepositoryFactory {
       this.instance = shouldUseFirebase
         ? new FirebaseScoreRepository()
         : new LocalScoreRepository();
-      
-      console.log(`Repository initialized: ${shouldUseFirebase ? 'Firebase' : 'Local'}`);
     }
 
     return this.instance;

@@ -65,23 +65,17 @@ let unsubscribeGames: (() => void) | undefined;
 
 // Migration logic
 async function migrateToMultiGroup() {
-  console.log('Checking if migration is needed...');
-  
   const migrationKey = 'burako_migration_completed';
   const migrated = localStorage.getItem(migrationKey);
   
   if (migrated === 'true') {
-    console.log('Already migrated, skipping...');
     return;
   }
-  
-  console.log('Starting migration to multi-group support...');
   
   try {
     // Check if groups already exist
     const existingGroups = await repository.listGroups();
     if (existingGroups.length > 0) {
-      console.log('Groups already exist, marking as migrated');
       localStorage.setItem(migrationKey, 'true');
       return;
     }
@@ -95,28 +89,23 @@ async function migrateToMultiGroup() {
     };
     
     localStorage.setItem('burako_pre_migration_backup', JSON.stringify(backup));
-    console.log(`Backed up ${backup.games.length} games, ${backup.players.length} players, ${backup.pairs.length} pairs`);
     
     if (backup.games.length === 0 && backup.players.length === 0) {
-      console.log('No existing data to migrate');
       localStorage.setItem(migrationKey, 'true');
       return;
     }
     
     // Create default group
     const defaultGroup = await repository.createGroup('Maayan, Nevo, Assaf & Gilad');
-    console.log(`Created default group: ${defaultGroup.id}`);
     
     // Add players to group
     for (const player of backup.players) {
       await repository.addPlayerToGroup(defaultGroup.id, player.id);
-      console.log(`Added ${player.name} to default group`);
     }
     
     // Create pairs in the group
     for (const pair of backup.pairs) {
       await repository.createPair(defaultGroup.id, pair.players);
-      console.log(`Created pair in group: ${pair.id}`);
     }
     
     // Migrate games
@@ -128,10 +117,7 @@ async function migrateToMultiGroup() {
         notes: game.notes,
         startingPairId: game.startingPairId,
       });
-      console.log(`Migrated game: ${game.id} (${game.playedAt})`);
     }
-    
-    console.log(`✅ Migration complete! Migrated ${backup.games.length} games`);
     
     // Mark migration as complete
     localStorage.setItem(migrationKey, 'true');
@@ -170,27 +156,20 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       
       // Load groups
       const groups = await repository.listGroups();
-      console.log('Loaded groups:', groups);
-      console.log('Number of groups:', groups.length);
       
       // Get or set active group
       let activeGroupId = localStorage.getItem('burako_active_group_id');
-      console.log('Active group ID from localStorage:', activeGroupId);
       
       if (!activeGroupId && groups.length > 0) {
         activeGroupId = groups[0].id;
-        console.log('Setting first group as active:', activeGroupId);
         localStorage.setItem('burako_active_group_id', activeGroupId);
       }
       
       if (!activeGroupId) {
         // No groups yet - show onboarding
-        console.log('No active group, showing onboarding');
         set({ groups, loading: false, initialized: true });
         return;
       }
-      
-      console.log('Loading data for group:', activeGroupId);
       
       // Load active group data
       const [players, pairs, games, allPlayers] = await Promise.all([
