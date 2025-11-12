@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
+import { useToast } from '../hooks/useToast';
 
 // Generate all possible pairs from 4 players
 function generatePairs(playerIds: string[]): Array<[string, string]> {
@@ -15,6 +16,7 @@ function generatePairs(playerIds: string[]): Array<[string, string]> {
 
 export function GroupsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const groups = useScoreStore((state) => state.groups);
   const activeGroupId = useScoreStore((state) => state.activeGroupId);
   const allPlayers = useScoreStore((state) => state.allPlayers);
@@ -42,14 +44,16 @@ export function GroupsPage() {
 
   const handleAddNewPlayer = async () => {
     if (!newPlayerName.trim()) {
+      toast.error('Please enter a player name');
       return;
     }
     try {
       const player = await createPlayer(newPlayerName.trim());
       setSelectedPlayerIds([...selectedPlayerIds, player.id]);
       setNewPlayerName('');
+      toast.success('Player created successfully!');
     } catch (error) {
-      console.error('Failed to create player:', error);
+      toast.error('Failed to create player', error);
     }
   };
 
@@ -65,14 +69,14 @@ export function GroupsPage() {
       return;
     }
     if (selectedPlayerIds.length !== 4) {
-      alert('Please select exactly 4 players for the group');
+      toast.error('Please select exactly 4 players for the group');
       return;
     }
     
     // Check for duplicate group names
     const groupName = newGroupName.trim();
     if (groups.some((g) => g.name.toLowerCase() === groupName.toLowerCase())) {
-      alert(`A group named "${groupName}" already exists. Please choose a different name.`);
+      toast.error(`A group named "${groupName}" already exists`);
       return;
     }
     
@@ -96,17 +100,24 @@ export function GroupsPage() {
       
       setNewGroupName('');
       setSelectedPlayerIds([]);
+      toast.success(`Group "${groupName}" created successfully!`);
       navigate('/leaderboard');
     } catch (error) {
-      console.error('Failed to create group:', error);
+      toast.error('Failed to create group', error);
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleSwitchGroup = async (groupId: string) => {
-    await switchGroup(groupId);
-    navigate('/leaderboard');
+    try {
+      await switchGroup(groupId);
+      const group = groups.find((g) => g.id === groupId);
+      toast.success(`Switched to "${group?.name}"`);
+      navigate('/leaderboard');
+    } catch (error) {
+      toast.error('Failed to switch group', error);
+    }
   };
 
   const handleStartEdit = (groupId: string, currentName: string) => {
@@ -123,7 +134,7 @@ export function GroupsPage() {
     // Check for duplicate names (excluding current group)
     const groupName = editGroupName.trim();
     if (groups.some((g) => g.id !== groupId && g.name.toLowerCase() === groupName.toLowerCase())) {
-      alert(`A group named "${groupName}" already exists. Please choose a different name.`);
+      toast.error(`A group named "${groupName}" already exists`);
       return;
     }
     
@@ -131,8 +142,9 @@ export function GroupsPage() {
       await updateGroup(groupId, groupName);
       setEditingGroupId(null);
       setEditGroupName('');
+      toast.success('Group name updated!');
     } catch (error) {
-      console.error('Failed to update group:', error);
+      toast.error('Failed to update group', error);
     }
   };
 
@@ -149,8 +161,9 @@ export function GroupsPage() {
     try {
       await deleteGroup(groupId);
       setDeleteConfirm(null);
+      toast.success('Group deleted');
     } catch (error) {
-      console.error('Failed to delete group:', error);
+      toast.error('Failed to delete group', error);
     }
   };
 

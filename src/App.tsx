@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 import { AppLayout } from './layout/AppLayout.tsx';
 import { AddGamePage } from './pages/AddGamePage.tsx';
@@ -13,6 +14,30 @@ import { PageErrorBoundary } from './components/PageErrorBoundary.tsx';
 function App() {
   return (
     <ErrorBoundary>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '16px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/leaderboard" replace />} />
