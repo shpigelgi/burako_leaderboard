@@ -69,7 +69,7 @@
 .panel-header {
   display: grid;
   gap: 0.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .panel-header h1 {
