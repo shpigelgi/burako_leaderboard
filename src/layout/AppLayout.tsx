@@ -44,6 +44,9 @@ export function AppLayout() {
           <NavLink to="/add" className={navClassName}>
             Add Game
           </NavLink>
+          <NavLink to="/players" className={navClassName}>
+            Players
+          </NavLink>
           <NavLink to="/groups" className={navClassName}>
             Groups
           </NavLink>
