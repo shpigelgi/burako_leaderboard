@@ -98,7 +98,10 @@ export class FirebaseScoreRepository implements ScoreRepository {
   // Group management
   async listGroups(): Promise<Group[]> {
     const snapshot = await getDocs(query(groupsCollection));
-    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Group);
+    return snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    } as Group));
   }
 
   async createGroup(name: string): Promise<Group> {
