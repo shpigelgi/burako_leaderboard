@@ -246,11 +246,16 @@ export class FirebaseScoreRepository implements ScoreRepository {
   async listPairs(groupId: GroupId): Promise<Pair[]> {
     const pairsCollection = collection(db, `groups/${groupId}/pairs`);
     const snapshot = await getDocs(query(pairsCollection));
-    const rawData = snapshot.docs.map((docSnapshot) => ({
-      ...docSnapshot.data(),
-      id: docSnapshot.id, // Put id AFTER data to ensure document ID takes precedence
-      groupId,
-    }));
+    const rawData = snapshot.docs.map((docSnapshot) => {
+      const data = docSnapshot.data();
+      // NEVER use id from document data - always use document ID
+      const { id: _ignoredId, ...cleanData } = data as any;
+      return {
+        ...cleanData,
+        id: docSnapshot.id,
+        groupId,
+      };
+    });
     return validateArray(rawData, validatePair, 'Pairs');
   }
 
@@ -416,11 +421,16 @@ export class FirebaseScoreRepository implements ScoreRepository {
   async legacyListPairs(): Promise<Pair[]> {
     const pairsCollection = collection(db, 'pairs');
     const snapshot = await getDocs(query(pairsCollection));
-    const rawData = snapshot.docs.map((docSnapshot) => ({
-      ...docSnapshot.data(),
-      id: docSnapshot.id, // Put id AFTER data to ensure document ID takes precedence
-      groupId: DEFAULT_GROUP_ID,
-    }));
+    const rawData = snapshot.docs.map((docSnapshot) => {
+      const data = docSnapshot.data();
+      // NEVER use id from document data - always use document ID
+      const { id: _ignoredId, ...cleanData } = data as any;
+      return {
+        ...cleanData,
+        id: docSnapshot.id,
+        groupId: DEFAULT_GROUP_ID,
+      };
+    });
     return validateArray(rawData, validatePair, 'Legacy Pairs');
   }
 
