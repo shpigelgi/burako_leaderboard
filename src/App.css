@@ -69,7 +69,7 @@
 .panel-header {
   display: grid;
   gap: 0.25rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .panel-header h1 {
@@ -84,7 +84,7 @@
 }
 
 .panel-section {
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .panel-section:last-child {
@@ -364,7 +364,12 @@
 
 .field {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
 }
 
 .field.grid {
@@ -414,6 +419,7 @@
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+  margin-top: 1.5rem;
   justify-content: flex-end;
 }
 
