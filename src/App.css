@@ -63,12 +63,13 @@
   padding: clamp(1.25rem, 2.5vw, 2.1rem);
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
   display: grid;
-  gap: 1.5rem;
+  gap: 3rem;
 }
 
 .panel-header {
   display: grid;
   gap: 0.25rem;
+  margin-bottom: 3rem;
 }
 
 .panel-header h1 {
@@ -82,8 +83,16 @@
   color: #5f6472;
 }
 
+.panel-section {
+  margin-bottom: 3rem;
+}
+
+.panel-section:last-child {
+  margin-bottom: 0;
+}
+
 .section-title {
-  margin: 0.5rem 0;
+  margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: #1f2937;
