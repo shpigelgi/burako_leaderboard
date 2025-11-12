@@ -233,6 +233,16 @@ export function HistoryPage() {
                         .map((team) => {
                           const pair = pairLookup.get(team.pairId);
                           if (!pair) {
+                            // Fallback: try to get player names from game scores
+                            const teamScores = game.scores.filter(score => 
+                              score.points === team.totalPoints
+                            );
+                            if (teamScores.length > 0) {
+                              const names = teamScores
+                                .map(score => playerLookup.get(score.playerId) ?? 'Unknown')
+                                .join(' & ');
+                              return `${names} (${team.totalPoints} pts)`;
+                            }
                             return `Unknown pair (${team.totalPoints} pts)`;
                           }
                           const names = pair.players
