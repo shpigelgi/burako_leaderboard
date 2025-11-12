@@ -14,6 +14,12 @@ import {
 import type { DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { createId } from '../lib/id';
+import {
+  validateGroup,
+  validatePlayer,
+  validatePair,
+  validateArray,
+} from '../lib/validation';
 import { DEFAULT_GROUP_ID } from '../data/mockData';
 import type {
   AuditEntry,
@@ -98,10 +104,11 @@ export class FirebaseScoreRepository implements ScoreRepository {
   // Group management
   async listGroups(): Promise<Group[]> {
     const snapshot = await getDocs(query(groupsCollection));
-    return snapshot.docs.map((docSnapshot) => ({
+    const rawData = snapshot.docs.map((docSnapshot) => ({
       id: docSnapshot.id,
       ...docSnapshot.data(),
-    } as Group));
+    }));
+    return validateArray(rawData, validateGroup, 'Groups');
   }
 
   async createGroup(name: string): Promise<Group> {
@@ -143,7 +150,11 @@ export class FirebaseScoreRepository implements ScoreRepository {
   // Player management (global)
   async listAllPlayers(): Promise<Player[]> {
     const snapshot = await getDocs(query(playersCollection));
-    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Player);
+    const rawData = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    }));
+    return validateArray(rawData, validatePlayer, 'Players');
   }
 
   async createPlayer(name: string): Promise<Player> {
@@ -185,7 +196,15 @@ export class FirebaseScoreRepository implements ScoreRepository {
     for (const playerId of playerIds) {
       const playerDoc = await getDoc(doc(playersCollection, playerId));
       if (playerDoc.exists()) {
-        players.push(playerDoc.data() as Player);
+        try {
+          const player = validatePlayer({
+            id: playerDoc.id,
+            ...playerDoc.data(),
+          });
+          players.push(player);
+        } catch (error) {
+          console.error(`Invalid player data for ${playerId}:`, error);
+        }
       }
     }
     return players;
@@ -207,14 +226,12 @@ export class FirebaseScoreRepository implements ScoreRepository {
   async listPairs(groupId: GroupId): Promise<Pair[]> {
     const pairsCollection = collection(db, `groups/${groupId}/pairs`);
     const snapshot = await getDocs(query(pairsCollection));
-    return snapshot.docs.map((docSnapshot) => {
-      const data = docSnapshot.data();
-      return {
-        id: docSnapshot.id,
-        groupId,
-        players: data.players as [string, string],
-      };
-    });
+    const rawData = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      groupId,
+      ...docSnapshot.data(),
+    }));
+    return validateArray(rawData, validatePair, 'Pairs');
   }
 
   async createPair(groupId: GroupId, players: [string, string]): Promise<Pair> {
@@ -369,20 +386,22 @@ export class FirebaseScoreRepository implements ScoreRepository {
   // Legacy methods for migration
   async legacyListPlayers(): Promise<Player[]> {
     const snapshot = await getDocs(query(playersCollection));
-    return snapshot.docs.map((docSnapshot) => docSnapshot.data() as Player);
+    const rawData = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+    }));
+    return validateArray(rawData, validatePlayer, 'Legacy Players');
   }
 
   async legacyListPairs(): Promise<Pair[]> {
     const pairsCollection = collection(db, 'pairs');
     const snapshot = await getDocs(query(pairsCollection));
-    return snapshot.docs.map((docSnapshot) => {
-      const data = docSnapshot.data();
-      return {
-        id: docSnapshot.id,
-        groupId: DEFAULT_GROUP_ID,
-        players: data.players as [string, string],
-      };
-    });
+    const rawData = snapshot.docs.map((docSnapshot) => ({
+      id: docSnapshot.id,
+      groupId: DEFAULT_GROUP_ID,
+      ...docSnapshot.data(),
+    }));
+    return validateArray(rawData, validatePair, 'Legacy Pairs');
   }
 
   async legacyListGames(): Promise<GameRecord[]> {
