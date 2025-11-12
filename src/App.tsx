@@ -14,6 +14,9 @@ import { PageErrorBoundary } from './components/PageErrorBoundary.tsx';
 function App() {
   return (
     <ErrorBoundary>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Toaster
         position="top-center"
         toastOptions={{

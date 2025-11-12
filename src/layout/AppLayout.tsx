@@ -22,7 +22,7 @@ export function AppLayout() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
+      <header className="app-header" role="banner">
         <div className="app-brand">
           <div>Burako Scores</div>
           {activeGroup && (
@@ -31,7 +31,7 @@ export function AppLayout() {
             </div>
           )}
         </div>
-        <nav className="app-nav">
+        <nav className="app-nav" aria-label="Main navigation">
           <NavLink to="/leaderboard" className={navClassName}>
             Leaderboard
           </NavLink>
@@ -53,10 +53,15 @@ export function AppLayout() {
         </nav>
         {groups.length > 1 && (
           <div className="group-selector">
+            <label htmlFor="group-select" className="sr-only">
+              Select active group
+            </label>
             <select
+              id="group-select"
               value={activeGroupId || ''}
               onChange={(e) => switchGroup(e.target.value)}
               className="field-control"
+              aria-label="Select active group"
             >
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
@@ -67,10 +72,14 @@ export function AppLayout() {
           </div>
         )}
       </header>
-      <main className="app-main">
+      <main id="main-content" className="app-main" role="main">
         {loading && !initialized ? <div className="status-card">Loading games…</div> : <Outlet />}
       </main>
-      {error ? <div className="status-banner">{error}</div> : null}
+      {error ? (
+        <div className="status-banner" role="alert" aria-live="assertive">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }
