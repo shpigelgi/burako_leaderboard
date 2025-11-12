@@ -233,10 +233,10 @@ export function HistoryPage() {
                         .map((team) => {
                           const pair = pairLookup.get(team.pairId);
                           if (!pair) {
-                            return team.pairId;
+                            return `Unknown pair (${team.totalPoints} pts)`;
                           }
                           const names = pair.players
-                            .map((playerId) => playerLookup.get(playerId) ?? playerId)
+                            .map((playerId) => playerLookup.get(playerId) ?? 'Unknown')
                             .join(' & ');
                           return `${names} (${team.totalPoints} pts)`;
                         })
