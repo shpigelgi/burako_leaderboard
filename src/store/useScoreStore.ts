@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import RepositoryFactory from '../repositories/repositoryFactory';
 import { subscribeToGames } from '../repositories/firebaseScoreRepository';
 import { ensureAuth } from '../lib/firebase';
+import { STORAGE_KEYS, DEFAULTS } from '../lib/constants';
 import type {
   GameId,
   GameRecord,
@@ -65,8 +66,7 @@ let unsubscribeGames: (() => void) | undefined;
 
 // Migration logic
 async function migrateToMultiGroup() {
-  const migrationKey = 'burako_migration_completed';
-  const migrated = localStorage.getItem(migrationKey);
+  const migrated = localStorage.getItem(STORAGE_KEYS.MIGRATION_COMPLETED);
   
   if (migrated === 'true') {
     return;
@@ -76,7 +76,7 @@ async function migrateToMultiGroup() {
     // Check if groups already exist
     const existingGroups = await repository.listGroups();
     if (existingGroups.length > 0) {
-      localStorage.setItem(migrationKey, 'true');
+      localStorage.setItem(STORAGE_KEYS.MIGRATION_COMPLETED, 'true');
       return;
     }
     
@@ -88,15 +88,15 @@ async function migrateToMultiGroup() {
       games: await repository.legacyListGames?.() || [],
     };
     
-    localStorage.setItem('burako_pre_migration_backup', JSON.stringify(backup));
+    localStorage.setItem(STORAGE_KEYS.PRE_MIGRATION_BACKUP, JSON.stringify(backup));
     
     if (backup.games.length === 0 && backup.players.length === 0) {
-      localStorage.setItem(migrationKey, 'true');
+      localStorage.setItem(STORAGE_KEYS.MIGRATION_COMPLETED, 'true');
       return;
     }
     
     // Create default group
-    const defaultGroup = await repository.createGroup('Maayan, Nevo, Assaf & Gilad');
+    const defaultGroup = await repository.createGroup(DEFAULTS.GROUP_NAME);
     
     // Add players to group
     for (const player of backup.players) {
@@ -120,8 +120,8 @@ async function migrateToMultiGroup() {
     }
     
     // Mark migration as complete
-    localStorage.setItem(migrationKey, 'true');
-    localStorage.setItem('burako_active_group_id', defaultGroup.id);
+    localStorage.setItem(STORAGE_KEYS.MIGRATION_COMPLETED, 'true');
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_GROUP_ID, defaultGroup.id);
     
   } catch (error) {
     console.error('Migration failed:', error);
@@ -158,11 +158,11 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       const groups = await repository.listGroups();
       
       // Get or set active group
-      let activeGroupId = localStorage.getItem('burako_active_group_id');
+      let activeGroupId = localStorage.getItem(STORAGE_KEYS.ACTIVE_GROUP_ID);
       
       if (!activeGroupId && groups.length > 0) {
         activeGroupId = groups[0].id;
-        localStorage.setItem('burako_active_group_id', activeGroupId);
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_GROUP_ID, activeGroupId);
       }
       
       if (!activeGroupId) {
@@ -266,7 +266,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       }
       
       // Save active group
-      localStorage.setItem('burako_active_group_id', groupId);
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_GROUP_ID, groupId);
       
       set({
         activeGroupId: groupId,

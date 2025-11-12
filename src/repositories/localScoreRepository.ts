@@ -1,5 +1,6 @@
 import { createId } from '../lib/id';
 import { sanitizeName } from '../lib/sanitize';
+import { STORAGE_KEYS } from '../lib/constants';
 import type {
   GameId,
   GameRecord,
@@ -13,10 +14,6 @@ import type {
 } from '../types';
 import type { ScoreRepository } from './scoreRepository';
 import { DEFAULT_GROUP_ID, mockPlayers, mockPairs, mockGames } from '../data/mockData';
-
-const GROUPS_KEY = 'burako-groups';
-const PLAYERS_KEY = 'burako-players';
-const STORAGE_PREFIX = 'burako-group-';
 
 const getStorage = () => {
   if (typeof window === 'undefined' || !window.localStorage) {
@@ -66,12 +63,12 @@ const readGroups = (): Group[] => {
   if (!storage) {
     return [];
   }
-  const raw = storage.getItem(GROUPS_KEY);
-  if (!raw) {
+  const data = storage.getItem(STORAGE_KEYS.GROUPS);
+  if (!data) {
     return [];
   }
   try {
-    return JSON.parse(raw) as Group[];
+    return JSON.parse(data) as Group[];
   } catch {
     return [];
   }
@@ -82,7 +79,7 @@ const writeGroups = (groups: Group[]): void => {
   if (!storage) {
     return;
   }
-  storage.setItem(GROUPS_KEY, JSON.stringify(groups));
+  storage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
 };
 
 const readGroupData = (groupId: GroupId): GroupData => {
@@ -90,7 +87,7 @@ const readGroupData = (groupId: GroupId): GroupData => {
   if (!storage) {
     return { members: [], pairs: [], games: [] };
   }
-  const key = `${STORAGE_PREFIX}${groupId}`;
+  const key = `${STORAGE_KEYS.GROUP_DATA_PREFIX}${groupId}`;
   const raw = storage.getItem(key);
   if (!raw) {
     return { members: [], pairs: [], games: [] };
@@ -107,7 +104,7 @@ const writeGroupData = (groupId: GroupId, data: GroupData): void => {
   if (!storage) {
     return;
   }
-  const key = `${STORAGE_PREFIX}${groupId}`;
+  const key = `${STORAGE_KEYS.GROUP_DATA_PREFIX}${groupId}`;
   storage.setItem(key, JSON.stringify(data));
 };
 
@@ -116,15 +113,15 @@ const readAllPlayers = (): Player[] => {
   if (!storage) {
     return mockPlayers.map((p) => ({ ...p }));
   }
-  const raw = storage.getItem(PLAYERS_KEY);
+  const raw = storage.getItem(STORAGE_KEYS.PLAYERS);
   if (!raw) {
-    storage.setItem(PLAYERS_KEY, JSON.stringify(mockPlayers));
+    storage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(mockPlayers));
     return mockPlayers.map((p) => ({ ...p }));
   }
   try {
     return JSON.parse(raw) as Player[];
   } catch {
-    storage.setItem(PLAYERS_KEY, JSON.stringify(mockPlayers));
+    storage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(mockPlayers));
     return mockPlayers.map((p) => ({ ...p }));
   }
 };
@@ -134,7 +131,7 @@ const writeAllPlayers = (players: Player[]): void => {
   if (!storage) {
     return;
   }
-  storage.setItem(PLAYERS_KEY, JSON.stringify(players));
+  storage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
 };
 
 export class LocalScoreRepository implements ScoreRepository {
@@ -180,7 +177,7 @@ export class LocalScoreRepository implements ScoreRepository {
     // Delete group data
     const storage = getStorage();
     if (storage) {
-      storage.removeItem(`${STORAGE_PREFIX}${groupId}`);
+      storage.removeItem(`${STORAGE_KEYS.GROUP_DATA_PREFIX}${groupId}`);
     }
   }
 
