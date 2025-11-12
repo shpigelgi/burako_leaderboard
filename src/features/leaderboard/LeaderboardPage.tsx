@@ -27,7 +27,7 @@ export function LeaderboardPage() {
   const pairLeaderboard = useMemo(() => calculatePairLeaderboard(games), [games]);
   const gameLeaderboard = useMemo(() => calculateGameLeaderboard(games), [games]);
   const playerLookup = useMemo(
-    () => new Map(players.map((player) => [player.id, player.name])),
+    () => new Map(players.map((player) => [player.id, player])),
     [players],
   );
   const pairLookup = useMemo(() => new Map(pairs.map((pair) => [pair.id, pair])), [pairs]);
@@ -39,10 +39,30 @@ export function LeaderboardPage() {
   const pairLabel = (pairId: string) => {
     const pair = pairLookup.get(pairId);
     if (!pair) {
-      return pairId;
+      // Fallback: Try to find player names from games where this pair played
+      for (const game of games) {
+        const team = game.teams.find(t => t.pairId === pairId);
+        if (team) {
+          // Extract player names from game scores
+          const playerNames = game.scores
+            .map(score => {
+              const player = playerLookup.get(score.playerId);
+              return player?.name || score.playerId;
+            })
+            .filter(Boolean);
+          
+          if (playerNames.length >= 2) {
+            return `${playerNames[0]} & ${playerNames[1]}`;
+          }
+        }
+      }
+      return 'Unknown';
     }
     return pair.players
-      .map((playerId) => playerLookup.get(playerId) ?? playerId)
+      .map((playerId) => {
+        const player = playerLookup.get(playerId);
+        return player?.name ?? 'Unknown';
+      })
       .join(' & ');
   };
 
@@ -90,7 +110,7 @@ export function LeaderboardPage() {
           <tbody>
             {leaderboard.map((entry) => (
               <tr key={entry.playerId}>
-                <td data-label="Player">{playerLookup.get(entry.playerId) || 'Unknown'}</td>
+                <td data-label="Player">{playerLookup.get(entry.playerId)?.name || 'Unknown'}</td>
                 <td data-label="Total Points">{entry.totalPoints}</td>
                 <td data-label="Games">{entry.gamesPlayed}</td>
                 <td data-label="Average">{entry.averagePoints}</td>
