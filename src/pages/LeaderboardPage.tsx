@@ -5,6 +5,7 @@ import {
   calculatePairLeaderboard,
 } from '../lib/scoreUtils';
 import { useScoreStore } from '../store/useScoreStore';
+import { SkeletonTableRow } from '../components/Skeleton';
 
 type LeaderboardType = 'players' | 'pairs' | 'games';
 
@@ -18,6 +19,7 @@ export function LeaderboardPage() {
   const players = useScoreStore((state) => state.players);
   const games = useScoreStore((state) => state.games);
   const pairs = useScoreStore((state) => state.pairs);
+  const loading = useScoreStore((state) => state.loading);
 
   const [selected, setSelected] = useState<LeaderboardType>('players');
 
@@ -45,6 +47,30 @@ export function LeaderboardPage() {
   };
 
   const renderPlayers = () => {
+    if (loading) {
+      return (
+        <>
+          <h2 className="section-title">Top Players</h2>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Total Points</th>
+                <th>Games</th>
+                <th>Average</th>
+                <th>Last Played</th>
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonTableRow columns={5} />
+              <SkeletonTableRow columns={5} />
+              <SkeletonTableRow columns={5} />
+            </tbody>
+          </table>
+        </>
+      );
+    }
+    
     if (leaderboard.length === 0) {
       return <div className="status-card">No player stats available.</div>;
     }
@@ -64,7 +90,7 @@ export function LeaderboardPage() {
           <tbody>
             {leaderboard.map((entry) => (
               <tr key={entry.playerId}>
-                <td data-label="Player">{playerLookup.get(entry.playerId) ?? entry.playerId}</td>
+                <td data-label="Player">{playerLookup.get(entry.playerId) || 'Unknown'}</td>
                 <td data-label="Total Points">{entry.totalPoints}</td>
                 <td data-label="Games">{entry.gamesPlayed}</td>
                 <td data-label="Average">{entry.averagePoints}</td>
