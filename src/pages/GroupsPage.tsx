@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
 
@@ -6,25 +6,67 @@ export function GroupsPage() {
   const navigate = useNavigate();
   const groups = useScoreStore((state) => state.groups);
   const activeGroupId = useScoreStore((state) => state.activeGroupId);
+  const allPlayers = useScoreStore((state) => state.allPlayers);
   const createGroup = useScoreStore((state) => state.createGroup);
   const deleteGroup = useScoreStore((state) => state.deleteGroup);
   const switchGroup = useScoreStore((state) => state.switchGroup);
+  const loadAllPlayers = useScoreStore((state) => state.loadAllPlayers);
+  const createPlayer = useScoreStore((state) => state.createPlayer);
+  const addPlayerToGroup = useScoreStore((state) => state.addPlayerToGroup);
   const loading = useScoreStore((state) => state.loading);
 
   const [newGroupName, setNewGroupName] = useState('');
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [newPlayerName, setNewPlayerName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadAllPlayers();
+  }, [loadAllPlayers]);
+
+  const handleAddNewPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      return;
+    }
+    try {
+      const player = await createPlayer(newPlayerName.trim());
+      setSelectedPlayerIds([...selectedPlayerIds, player.id]);
+      setNewPlayerName('');
+    } catch (error) {
+      console.error('Failed to create player:', error);
+    }
+  };
+
+  const handleTogglePlayer = (playerId: string) => {
+    setSelectedPlayerIds((prev) =>
+      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId],
+    );
+  };
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) {
       return;
     }
+    if (selectedPlayerIds.length < 2) {
+      alert('Please select at least 2 players for the group');
+      return;
+    }
     setIsCreating(true);
     try {
       const group = await createGroup(newGroupName.trim());
-      setNewGroupName('');
+      
+      // Switch to the new group first
       await switchGroup(group.id);
+      
+      // Add selected players to the group
+      for (const playerId of selectedPlayerIds) {
+        await addPlayerToGroup(playerId);
+      }
+      
+      setNewGroupName('');
+      setSelectedPlayerIds([]);
       navigate('/leaderboard');
     } catch (error) {
       console.error('Failed to create group:', error);
@@ -74,9 +116,58 @@ export function GroupsPage() {
               disabled={isCreating}
             />
           </div>
-          <button type="submit" className="button" disabled={isCreating || !newGroupName.trim()}>
-            {isCreating ? 'Creating...' : 'Create Group'}
-          </button>
+
+          <div className="field">
+            <label className="field-label">Select Players (minimum 2)</label>
+            <div className="player-selection">
+              {allPlayers.map((player) => (
+                <label key={player.id} className="player-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedPlayerIds.includes(player.id)}
+                    onChange={() => handleTogglePlayer(player.id)}
+                    disabled={isCreating}
+                  />
+                  <span>{player.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="new-player-name">
+              Or Create New Player
+            </label>
+            <div className="input-group">
+              <input
+                id="new-player-name"
+                type="text"
+                className="field-control"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                placeholder="Player name"
+                disabled={isCreating}
+              />
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={handleAddNewPlayer}
+                disabled={isCreating || !newPlayerName.trim()}
+              >
+                Add Player
+              </button>
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button
+              type="submit"
+              className="button"
+              disabled={isCreating || !newGroupName.trim() || selectedPlayerIds.length < 2}
+            >
+              {isCreating ? 'Creating...' : `Create Group with ${selectedPlayerIds.length} Players`}
+            </button>
+          </div>
         </form>
       </div>
 

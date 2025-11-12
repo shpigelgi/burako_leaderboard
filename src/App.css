@@ -779,3 +779,49 @@ button:disabled {
 .button-danger:hover {
   background: #b91c1c;
 }
+
+.player-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(18, 18, 18, 0.12);
+  border-radius: 8px;
+  background: #f9fafb;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.player-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background 150ms ease;
+}
+
+.player-checkbox:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.player-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.player-checkbox span {
+  font-size: 0.95rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input-group .field-control {
+  flex: 1;
+}
