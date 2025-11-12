@@ -20,6 +20,7 @@ import {
   validatePair,
   validateArray,
 } from '../lib/validation';
+import { sanitizeName, sanitizeNotes } from '../lib/sanitize';
 import { DEFAULT_GROUP_ID } from '../data/mockData';
 import type {
   AuditEntry,
@@ -115,7 +116,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const groupDoc = doc(groupsCollection);
     const group: Group = {
       id: groupDoc.id,
-      name,
+      name: sanitizeName(name),
       createdAt: new Date().toISOString(),
     };
     await setDoc(groupDoc, group);
@@ -134,7 +135,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const updatedGroup: Group = {
       ...existingGroup,
       id: groupId,
-      name,
+      name: sanitizeName(name),
     };
     
     await setDoc(groupDoc, updatedGroup);
@@ -180,7 +181,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const playerDoc = doc(playersCollection);
     const player: Player = {
       id: playerDoc.id,
-      name,
+      name: sanitizeName(name),
     };
     await setDoc(playerDoc, player);
     return player;
@@ -190,7 +191,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const playerDoc = doc(playersCollection, playerId);
     const player: Player = {
       id: playerId,
-      name,
+      name: sanitizeName(name),
     };
     await setDoc(playerDoc, player);
     return player;
@@ -279,7 +280,7 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const gameDoc = doc(gamesCollection);
     const gameId = gameDoc.id;
     const playedAt = input.playedAt ?? new Date().toISOString();
-    const notes = input.notes ?? undefined;
+    const notes = input.notes ? sanitizeNotes(input.notes) : undefined;
 
     const auditEntry: AuditEntry = {
       id: createId('audit'),

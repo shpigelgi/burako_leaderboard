@@ -1,3 +1,5 @@
+import { createId } from '../lib/id';
+import { sanitizeName } from '../lib/sanitize';
 import type {
   GameId,
   GameRecord,
@@ -9,9 +11,8 @@ import type {
   Pair,
   Player,
 } from '../types';
-import { DEFAULT_GROUP_ID, mockGames, mockPairs, mockPlayers } from '../data/mockData';
-import { createId } from '../lib/id';
 import type { ScoreRepository } from './scoreRepository';
+import { DEFAULT_GROUP_ID, mockPlayers, mockPairs, mockGames } from '../data/mockData';
 
 const GROUPS_KEY = 'burako-groups';
 const PLAYERS_KEY = 'burako-players';
@@ -146,7 +147,7 @@ export class LocalScoreRepository implements ScoreRepository {
     const groups = readGroups();
     const group: Group = {
       id: createId('group'),
-      name,
+      name: sanitizeName(name),
       createdAt: new Date().toISOString(),
     };
     groups.push(group);
@@ -166,7 +167,7 @@ export class LocalScoreRepository implements ScoreRepository {
       throw new Error('Group not found');
     }
     
-    groups[index].name = name;
+    groups[index].name = sanitizeName(name);
     writeGroups(groups);
     return groups[index];
   }
@@ -192,7 +193,7 @@ export class LocalScoreRepository implements ScoreRepository {
     const players = readAllPlayers();
     const player: Player = {
       id: createId('player'),
-      name,
+      name: sanitizeName(name),
     };
     players.push(player);
     writeAllPlayers(players);
@@ -205,7 +206,7 @@ export class LocalScoreRepository implements ScoreRepository {
     if (index === -1) {
       throw new Error('Player not found');
     }
-    players[index].name = name;
+    players[index].name = sanitizeName(name);
     writeAllPlayers(players);
     return players[index];
   }
