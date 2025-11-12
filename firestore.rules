@@ -14,9 +14,9 @@ service cloud.firestore {
         && text.size() <= maxLen;
     }
     
-    function isValidTimestamp(timestamp) {
-      return timestamp is string 
-        && timestamp.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*');
+    function isValidTimestamp(dateStr) {
+      return dateStr is string 
+        && dateStr.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*');
     }
     
     // Global players collection - read by all, write by authenticated users
