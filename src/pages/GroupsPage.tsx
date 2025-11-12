@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
 import { useToast } from '../hooks/useToast';
 import { generateGroupName, isGroupNameDuplicate } from '../utils/groupNameGenerator';
+import { GroupForm } from '../components/forms/GroupForm';
 
 // Generate all possible pairs from 4 players
 function generatePairs(playerIds: string[]): Array<[string, string]> {
@@ -33,7 +34,6 @@ export function GroupsPage() {
 
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-  const [newPlayerName, setNewPlayerName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -43,13 +43,9 @@ export function GroupsPage() {
     void loadAllPlayers();
   }, [loadAllPlayers]);
 
-  const handleAddNewPlayer = async () => {
-    if (!newPlayerName.trim()) {
-      toast.error('Please enter a player name');
-      return;
-    }
+  const handleAddNewPlayer = async (playerName: string) => {
     try {
-      const player = await createPlayer(newPlayerName.trim());
+      const player = await createPlayer(playerName);
       const newSelection = [...selectedPlayerIds, player.id];
       setSelectedPlayerIds(newSelection);
       
@@ -57,10 +53,10 @@ export function GroupsPage() {
       const groupName = generateGroupName(newSelection, allPlayers, player.name);
       setNewGroupName(groupName);
       
-      setNewPlayerName('');
       toast.success('Player created successfully!');
     } catch (error) {
       toast.error('Failed to create player', error);
+      throw error; // Re-throw so NewPlayerForm can handle it
     }
   };
 
@@ -190,74 +186,17 @@ export function GroupsPage() {
 
       <div className="panel-section">
         <h2 className="section-title">Create New Group</h2>
-        <form onSubmit={handleCreateGroup} className="form">
-          <div className="field">
-            <label className="field-label" htmlFor="group-name">
-              Group Name
-            </label>
-            <input
-              id="group-name"
-              type="text"
-              className="field-control"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="e.g., Friday Night Crew"
-              disabled={isCreating}
-            />
-          </div>
-
-          <div className="field">
-            <label className="field-label">Select Players (exactly 4 required)</label>
-            <div className="player-selection">
-              {allPlayers.map((player) => (
-                <label key={player.id} className="player-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedPlayerIds.includes(player.id)}
-                    onChange={() => handleTogglePlayer(player.id)}
-                    disabled={isCreating}
-                  />
-                  <span>{player.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="field">
-            <label className="field-label" htmlFor="new-player-name">
-              Or Create New Player
-            </label>
-            <div className="input-group">
-              <input
-                id="new-player-name"
-                type="text"
-                className="field-control"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                placeholder="Player name"
-                disabled={isCreating}
-              />
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={handleAddNewPlayer}
-                disabled={isCreating || !newPlayerName.trim()}
-              >
-                Add Player
-              </button>
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <button
-              type="submit"
-              className="button"
-              disabled={isCreating || !newGroupName.trim() || selectedPlayerIds.length !== 4}
-            >
-              {isCreating ? 'Creating...' : `Create Group with ${selectedPlayerIds.length}/4 Players`}
-            </button>
-          </div>
-        </form>
+        <GroupForm
+          groupName={newGroupName}
+          onGroupNameChange={setNewGroupName}
+          selectedPlayerIds={selectedPlayerIds}
+          onTogglePlayer={handleTogglePlayer}
+          allPlayers={allPlayers}
+          onAddPlayer={handleAddNewPlayer}
+          onSubmit={handleCreateGroup}
+          isSubmitting={isCreating}
+          submitButtonText={`Create Group with ${selectedPlayerIds.length}/4 Players`}
+        />
       </div>
 
       <div className="panel-section">
