@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateGroupName, isGroupNameDuplicate } from './groupNameGenerator';
-import type { Player } from '../types';
+import type { Player } from '../../types';
 
 describe('generateGroupName', () => {
   const mockPlayers: Player[] = [

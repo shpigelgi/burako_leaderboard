@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { useScoreStore } from '../store/useScoreStore';
-import type { GameId, GameRecord, PairId, PlayerId } from '../types';
+import { useScoreStore } from '../../store/useScoreStore';
+import type { GameId, GameRecord, PairId, PlayerId } from '../../types';
 
 interface EditState {
   teamTotals: Record<PairId, number>;

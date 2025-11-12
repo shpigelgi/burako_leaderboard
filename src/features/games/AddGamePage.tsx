@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FocusEvent, FormEvent } from 'react';
-import { useScoreStore } from '../store/useScoreStore';
+import { useScoreStore } from '../../store/useScoreStore';
 import type {
   CardCountBreakdown,
   GameScore,
@@ -10,13 +10,13 @@ import type {
   ScoringMode,
   TeamResult,
   TeamScoringDetail,
-} from '../types';
+} from '../../types';
 import {
   CARD_POINT_VALUES,
   buildCardsScoringDetail,
   buildManualScoringDetail,
   buildSummaryScoringDetail,
-} from '../lib/scoring';
+} from '../../lib/scoring';
 
 interface TeamFormState {
   pairId: PairId | '';

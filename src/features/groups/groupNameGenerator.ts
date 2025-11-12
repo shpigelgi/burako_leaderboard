@@ -1,4 +1,4 @@
-import type { Player } from '../types';
+import type { Player } from '../../types';
 
 /**
  * Generates a formatted group name from player names.

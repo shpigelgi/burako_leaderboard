@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useScoreStore } from '../store/useScoreStore';
-import { calculateLeaderboard } from '../lib/scoreUtils';
-import type { Player } from '../types';
+import { useEffect, useState, useMemo } from 'react';
+import { useScoreStore } from '../../store/useScoreStore';
+import { calculateLeaderboard } from '../../lib/scoreUtils';
+import type { Player } from '../../types';
 
 export function PlayersPage() {
   const allPlayers = useScoreStore((state) => state.allPlayers);

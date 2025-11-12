@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { useScoreStore } from '../store/useScoreStore';
-import { useGroupManagement } from '../hooks/useGroupManagement';
-import { GroupForm } from '../components/forms/GroupForm';
+import { useScoreStore } from '../../store/useScoreStore';
+import { useGroupManagement } from './useGroupManagement';
+import { GroupForm } from '../../components/forms/GroupForm';
 
 export function GroupsPage() {
   const activeGroupId = useScoreStore((state) => state.activeGroupId);

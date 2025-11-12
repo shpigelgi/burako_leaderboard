@@ -3,9 +3,9 @@ import {
   calculateGameLeaderboard,
   calculateLeaderboard,
   calculatePairLeaderboard,
-} from '../lib/scoreUtils';
-import { useScoreStore } from '../store/useScoreStore';
-import { SkeletonTableRow } from '../components/Skeleton';
+} from '../../lib/scoreUtils';
+import { useScoreStore } from '../../store/useScoreStore';
+import { SkeletonTableRow } from '../../components/Skeleton';
 
 type LeaderboardType = 'players' | 'pairs' | 'games';
 

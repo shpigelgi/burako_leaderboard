@@ -2,14 +2,15 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 import { AppLayout } from './layout/AppLayout.tsx';
-import { AddGamePage } from './pages/AddGamePage.tsx';
 import { InfoPage } from './pages/InfoPage.tsx';
-import { HistoryPage } from './pages/HistoryPage.tsx';
-import { LeaderboardPage } from './pages/LeaderboardPage.tsx';
-import { GroupsPage } from './pages/GroupsPage.tsx';
-import { PlayersPage } from './pages/PlayersPage.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { PageErrorBoundary } from './components/PageErrorBoundary.tsx';
+
+// Feature imports
+import { GroupsPage } from './features/groups';
+import { PlayersPage } from './features/players';
+import { AddGamePage, HistoryPage } from './features/games';
+import { LeaderboardPage } from './features/leaderboard';
 
 function App() {
   return (

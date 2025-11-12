@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useScoreStore } from '../store/useScoreStore';
-import { useToast } from './useToast';
-import { generateGroupName, isGroupNameDuplicate } from '../utils/groupNameGenerator';
+import { useScoreStore } from '../../store/useScoreStore';
+import { useToast } from '../../hooks/useToast';
+import { generateGroupName, isGroupNameDuplicate } from './groupNameGenerator';
 
 /**
  * Custom hook for managing group creation and editing.
