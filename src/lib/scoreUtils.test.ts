@@ -5,6 +5,7 @@ import { calculateLeaderboard } from './scoreUtils';
 describe('calculateLeaderboard', () => {
   const baseGame = {
     id: 'game-1',
+    groupId: 'group-test',
     playedAt: '2025-01-01T00:00:00.000Z',
     teams: [],
     scores: [],
