@@ -52,12 +52,17 @@ export function GroupsPage() {
       const newSelection = [...selectedPlayerIds, player.id];
       setSelectedPlayerIds(newSelection);
       
-      // Auto-generate group name
-      const playerNames = newSelection
+      // Auto-generate group name (always 4 players)
+      const names = newSelection
         .map(id => allPlayers.find(p => p.id === id)?.name || (id === player.id ? player.name : null))
-        .filter(Boolean)
-        .join(', ');
-      setNewGroupName(playerNames);
+        .filter(Boolean);
+      
+      // Format: a, b, c & d
+      const groupName = names.length >= 2
+        ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1]
+        : names[0] || '';
+      
+      setNewGroupName(groupName);
       
       setNewPlayerName('');
       toast.success('Player created successfully!');
@@ -72,13 +77,18 @@ export function GroupsPage() {
         ? prev.filter((id) => id !== playerId) 
         : [...prev, playerId];
       
-      // Auto-generate group name from selected players
+      // Auto-generate group name from selected players (always 4)
       if (newSelection.length > 0) {
-        const playerNames = newSelection
+        const names = newSelection
           .map(id => allPlayers.find(p => p.id === id)?.name)
-          .filter(Boolean)
-          .join(', ');
-        setNewGroupName(playerNames);
+          .filter(Boolean);
+        
+        // Format: a, b, c & d
+        const groupName = names.length >= 2
+          ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1]
+          : names[0] || '';
+        
+        setNewGroupName(groupName);
       } else {
         setNewGroupName('');
       }
