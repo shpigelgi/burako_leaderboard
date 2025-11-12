@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isValidString(text, minLen, maxLen) {
+      return text is string 
+        && text.size() >= minLen 
+        && text.size() <= maxLen;
+    }
+    
+    function isValidTimestamp(timestamp) {
+      return timestamp is string 
+        && timestamp.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*');
+    }
+    
+    // Global players collection - read by all, write by authenticated users
+    match /players/{playerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+        && isValidString(request.resource.data.name, 1, 100)
+        && request.resource.data.keys().hasOnly(['id', 'name'])
+        && request.resource.data.id == playerId;
+      allow update: if isSignedIn()
+        && isValidString(request.resource.data.name, 1, 100)
+        && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn();
+    }
+    
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidString(request.resource.data.name, 1, 200)
+        && isValidTimestamp(request.resource.data.createdAt)
+        && request.resource.data.keys().hasOnly(['id', 'name', 'createdAt'])
+        && request.resource.data.id == groupId;
+      allow update: if isSignedIn()
+        && isValidString(request.resource.data.name, 1, 200)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isSignedIn();
+      
+      // Group members subcollection
+      match /members/{memberId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn()
+          && isValidTimestamp(request.resource.data.joinedAt);
+      }
+      
+      // Group pairs subcollection
+      match /pairs/{pairId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.players is list
+          && request.resource.data.players.size() == 2
+          && request.resource.data.keys().hasOnly(['players']);
+        allow update: if false; // Pairs should not be updated
+        allow delete: if isSignedIn();
+      }
+      
+      // Group games subcollection
+      match /games/{gameId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && isValidTimestamp(request.resource.data.playedAt)
+          && request.resource.data.teams is list
+          && request.resource.data.scores is list
+          && request.resource.data.auditTrail is list
+          && request.resource.data.keys().hasAll(['playedAt', 'teams', 'scores', 'auditTrail']);
+        allow update: if isSignedIn()
+          && request.resource.data.playedAt == resource.data.playedAt
+          && request.resource.data.auditTrail is list
+          && request.resource.data.auditTrail.size() > resource.data.auditTrail.size();
+        allow delete: if isSignedIn();
+      }
+    }
+    
+    // Legacy collections (for migration only - restrict after migration)
+    match /pairs/{pairId} {
+      allow read: if isSignedIn();
+      allow write: if false; // No new writes to legacy collection
+    }
+    
+    match /games/{gameId} {
+      allow read: if isSignedIn();
+      allow write: if false; // No new writes to legacy collection
+    }
+    
+    // Deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
