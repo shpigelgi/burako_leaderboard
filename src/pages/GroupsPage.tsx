@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
 import { useToast } from '../hooks/useToast';
+import { generateGroupName, isGroupNameDuplicate } from '../utils/groupNameGenerator';
 
 // Generate all possible pairs from 4 players
 function generatePairs(playerIds: string[]): Array<[string, string]> {
@@ -53,15 +54,7 @@ export function GroupsPage() {
       setSelectedPlayerIds(newSelection);
       
       // Auto-generate group name (always 4 players)
-      const names = newSelection
-        .map(id => allPlayers.find(p => p.id === id)?.name || (id === player.id ? player.name : null))
-        .filter(Boolean);
-      
-      // Format: a, b, c & d
-      const groupName = names.length >= 2
-        ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1]
-        : names[0] || '';
-      
+      const groupName = generateGroupName(newSelection, allPlayers, player.name);
       setNewGroupName(groupName);
       
       setNewPlayerName('');
@@ -78,20 +71,8 @@ export function GroupsPage() {
         : [...prev, playerId];
       
       // Auto-generate group name from selected players (always 4)
-      if (newSelection.length > 0) {
-        const names = newSelection
-          .map(id => allPlayers.find(p => p.id === id)?.name)
-          .filter(Boolean);
-        
-        // Format: a, b, c & d
-        const groupName = names.length >= 2
-          ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1]
-          : names[0] || '';
-        
-        setNewGroupName(groupName);
-      } else {
-        setNewGroupName('');
-      }
+      const groupName = generateGroupName(newSelection, allPlayers);
+      setNewGroupName(groupName);
       
       return newSelection;
     });
@@ -109,7 +90,7 @@ export function GroupsPage() {
     
     // Check for duplicate group names
     const groupName = newGroupName.trim();
-    if (groups.some((g) => g.name.toLowerCase() === groupName.toLowerCase())) {
+    if (isGroupNameDuplicate(groupName, groups)) {
       toast.error(`A group named "${groupName}" already exists`);
       return;
     }
@@ -167,7 +148,7 @@ export function GroupsPage() {
     
     // Check for duplicate names (excluding current group)
     const groupName = editGroupName.trim();
-    if (groups.some((g) => g.id !== groupId && g.name.toLowerCase() === groupName.toLowerCase())) {
+    if (isGroupNameDuplicate(groupName, groups, groupId)) {
       toast.error(`A group named "${groupName}" already exists`);
       return;
     }
