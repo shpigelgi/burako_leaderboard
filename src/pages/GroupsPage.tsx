@@ -1,182 +1,39 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useScoreStore } from '../store/useScoreStore';
-import { useToast } from '../hooks/useToast';
-import { generateGroupName, isGroupNameDuplicate } from '../utils/groupNameGenerator';
+import { useGroupManagement } from '../hooks/useGroupManagement';
 import { GroupForm } from '../components/forms/GroupForm';
 
-// Generate all possible pairs from 4 players
-function generatePairs(playerIds: string[]): Array<[string, string]> {
-  const pairs: Array<[string, string]> = [];
-  for (let i = 0; i < playerIds.length; i++) {
-    for (let j = i + 1; j < playerIds.length; j++) {
-      pairs.push([playerIds[i], playerIds[j]]);
-    }
-  }
-  return pairs;
-}
-
 export function GroupsPage() {
-  const navigate = useNavigate();
-  const toast = useToast();
-  const groups = useScoreStore((state) => state.groups);
   const activeGroupId = useScoreStore((state) => state.activeGroupId);
-  const allPlayers = useScoreStore((state) => state.allPlayers);
-  const createGroup = useScoreStore((state) => state.createGroup);
-  const updateGroup = useScoreStore((state) => state.updateGroup);
-  const deleteGroup = useScoreStore((state) => state.deleteGroup);
-  const switchGroup = useScoreStore((state) => state.switchGroup);
   const loadAllPlayers = useScoreStore((state) => state.loadAllPlayers);
-  const createPlayer = useScoreStore((state) => state.createPlayer);
-  const addPlayerToGroup = useScoreStore((state) => state.addPlayerToGroup);
-  const createPair = useScoreStore((state) => state.createPair);
   const loading = useScoreStore((state) => state.loading);
 
-  const [newGroupName, setNewGroupName] = useState('');
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editGroupName, setEditGroupName] = useState('');
+  // Use custom hook for all group management logic
+  const {
+    groups,
+    allPlayers,
+    newGroupName,
+    setNewGroupName,
+    selectedPlayerIds,
+    isCreating,
+    editingGroupId,
+    editGroupName,
+    setEditGroupName,
+    deleteConfirm,
+    handleAddPlayer,
+    handleTogglePlayer,
+    handleCreateGroup,
+    handleSwitchGroup,
+    handleStartEdit,
+    handleSaveEdit,
+    handleCancelEdit,
+    handleDeleteGroup,
+    handleCancelDelete,
+  } = useGroupManagement();
 
   useEffect(() => {
     void loadAllPlayers();
   }, [loadAllPlayers]);
-
-  const handleAddNewPlayer = async (playerName: string) => {
-    try {
-      const player = await createPlayer(playerName);
-      const newSelection = [...selectedPlayerIds, player.id];
-      setSelectedPlayerIds(newSelection);
-      
-      // Auto-generate group name (always 4 players)
-      const groupName = generateGroupName(newSelection, allPlayers, player.name);
-      setNewGroupName(groupName);
-      
-      toast.success('Player created successfully!');
-    } catch (error) {
-      toast.error('Failed to create player', error);
-      throw error; // Re-throw so NewPlayerForm can handle it
-    }
-  };
-
-  const handleTogglePlayer = (playerId: string) => {
-    setSelectedPlayerIds((prev) => {
-      const newSelection = prev.includes(playerId) 
-        ? prev.filter((id) => id !== playerId) 
-        : [...prev, playerId];
-      
-      // Auto-generate group name from selected players (always 4)
-      const groupName = generateGroupName(newSelection, allPlayers);
-      setNewGroupName(groupName);
-      
-      return newSelection;
-    });
-  };
-
-  const handleCreateGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGroupName.trim()) {
-      return;
-    }
-    if (selectedPlayerIds.length !== 4) {
-      toast.error('Please select exactly 4 players for the group');
-      return;
-    }
-    
-    // Check for duplicate group names
-    const groupName = newGroupName.trim();
-    if (isGroupNameDuplicate(groupName, groups)) {
-      toast.error(`A group named "${groupName}" already exists`);
-      return;
-    }
-    
-    setIsCreating(true);
-    try {
-      const group = await createGroup(groupName);
-      
-      // Switch to the new group first
-      await switchGroup(group.id);
-      
-      // Add selected players to the group
-      for (const playerId of selectedPlayerIds) {
-        await addPlayerToGroup(playerId);
-      }
-      
-      // Generate all possible pairs (6 pairs from 4 players)
-      const allPairs = generatePairs(selectedPlayerIds);
-      for (const pairPlayers of allPairs) {
-        await createPair(pairPlayers);
-      }
-      
-      setNewGroupName('');
-      setSelectedPlayerIds([]);
-      toast.success(`Group "${groupName}" created successfully!`);
-      navigate('/leaderboard');
-    } catch (error) {
-      toast.error('Failed to create group', error);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleSwitchGroup = async (groupId: string) => {
-    try {
-      await switchGroup(groupId);
-      const group = groups.find((g) => g.id === groupId);
-      toast.success(`Switched to "${group?.name}"`);
-      navigate('/leaderboard');
-    } catch (error) {
-      toast.error('Failed to switch group', error);
-    }
-  };
-
-  const handleStartEdit = (groupId: string, currentName: string) => {
-    setEditingGroupId(groupId);
-    setEditGroupName(currentName);
-    setDeleteConfirm(null);
-  };
-
-  const handleSaveEdit = async (groupId: string) => {
-    if (!editGroupName.trim()) {
-      return;
-    }
-    
-    // Check for duplicate names (excluding current group)
-    const groupName = editGroupName.trim();
-    if (isGroupNameDuplicate(groupName, groups, groupId)) {
-      toast.error(`A group named "${groupName}" already exists`);
-      return;
-    }
-    
-    try {
-      await updateGroup(groupId, groupName);
-      setEditingGroupId(null);
-      setEditGroupName('');
-      toast.success('Group name updated!');
-    } catch (error) {
-      toast.error('Failed to update group', error);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingGroupId(null);
-    setEditGroupName('');
-  };
-
-  const handleDeleteGroup = async (groupId: string) => {
-    if (deleteConfirm !== groupId) {
-      setDeleteConfirm(groupId);
-      return;
-    }
-    try {
-      await deleteGroup(groupId);
-      setDeleteConfirm(null);
-      toast.success('Group deleted');
-    } catch (error) {
-      toast.error('Failed to delete group', error);
-    }
-  };
 
   return (
     <section className="panel">
@@ -192,7 +49,7 @@ export function GroupsPage() {
           selectedPlayerIds={selectedPlayerIds}
           onTogglePlayer={handleTogglePlayer}
           allPlayers={allPlayers}
-          onAddPlayer={handleAddNewPlayer}
+          onAddPlayer={handleAddPlayer}
           onSubmit={handleCreateGroup}
           isSubmitting={isCreating}
           submitButtonText={`Create Group with ${selectedPlayerIds.length}/4 Players`}
@@ -277,7 +134,7 @@ export function GroupsPage() {
                       {deleteConfirm === group.id && (
                         <button
                           className="button button-secondary"
-                          onClick={() => setDeleteConfirm(null)}
+                          onClick={handleCancelDelete}
                         >
                           Cancel
                         </button>
