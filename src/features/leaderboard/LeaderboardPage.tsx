@@ -38,32 +38,18 @@ export function LeaderboardPage() {
 
   const pairLabel = (pairId: string) => {
     const pair = pairLookup.get(pairId);
-    if (!pair) {
-      // Fallback: Try to find player names from games where this pair played
-      for (const game of games) {
-        const team = game.teams.find(t => t.pairId === pairId);
-        if (team) {
-          // Extract player names from game scores
-          const playerNames = game.scores
-            .map(score => {
-              const player = playerLookup.get(score.playerId);
-              return player?.name || score.playerId;
-            })
-            .filter(Boolean);
-          
-          if (playerNames.length >= 2) {
-            return `${playerNames[0]} & ${playerNames[1]}`;
-          }
-        }
-      }
-      return 'Unknown';
+    if (pair) {
+      return pair.players
+        .map((playerId) => {
+          const player = playerLookup.get(playerId);
+          return player?.name ?? 'Unknown';
+        })
+        .join(' & ');
     }
-    return pair.players
-      .map((playerId) => {
-        const player = playerLookup.get(playerId);
-        return player?.name ?? 'Unknown';
-      })
-      .join(' & ');
+    
+    // Fallback: Extract pair info from pairId if it follows pattern
+    // This shouldn't happen if pairs are created properly
+    return `Unknown Pair (${pairId})`;
   };
 
   const renderPlayers = () => {
