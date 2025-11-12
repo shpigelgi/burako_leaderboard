@@ -49,7 +49,16 @@ export function GroupsPage() {
     }
     try {
       const player = await createPlayer(newPlayerName.trim());
-      setSelectedPlayerIds([...selectedPlayerIds, player.id]);
+      const newSelection = [...selectedPlayerIds, player.id];
+      setSelectedPlayerIds(newSelection);
+      
+      // Auto-generate group name
+      const playerNames = newSelection
+        .map(id => allPlayers.find(p => p.id === id)?.name || (id === player.id ? player.name : null))
+        .filter(Boolean)
+        .join(', ');
+      setNewGroupName(playerNames);
+      
       setNewPlayerName('');
       toast.success('Player created successfully!');
     } catch (error) {
@@ -58,9 +67,24 @@ export function GroupsPage() {
   };
 
   const handleTogglePlayer = (playerId: string) => {
-    setSelectedPlayerIds((prev) =>
-      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId],
-    );
+    setSelectedPlayerIds((prev) => {
+      const newSelection = prev.includes(playerId) 
+        ? prev.filter((id) => id !== playerId) 
+        : [...prev, playerId];
+      
+      // Auto-generate group name from selected players
+      if (newSelection.length > 0) {
+        const playerNames = newSelection
+          .map(id => allPlayers.find(p => p.id === id)?.name)
+          .filter(Boolean)
+          .join(', ');
+        setNewGroupName(playerNames);
+      } else {
+        setNewGroupName('');
+      }
+      
+      return newSelection;
+    });
   };
 
   const handleCreateGroup = async (e: React.FormEvent) => {
