@@ -49,8 +49,8 @@ export function GroupsPage() {
     if (!newGroupName.trim()) {
       return;
     }
-    if (selectedPlayerIds.length < 2) {
-      alert('Please select at least 2 players for the group');
+    if (selectedPlayerIds.length !== 4) {
+      alert('Please select exactly 4 players for the group');
       return;
     }
     setIsCreating(true);
@@ -118,7 +118,7 @@ export function GroupsPage() {
           </div>
 
           <div className="field">
-            <label className="field-label">Select Players (minimum 2)</label>
+            <label className="field-label">Select Players (exactly 4 required)</label>
             <div className="player-selection">
               {allPlayers.map((player) => (
                 <label key={player.id} className="player-checkbox">
@@ -163,9 +163,9 @@ export function GroupsPage() {
             <button
               type="submit"
               className="button"
-              disabled={isCreating || !newGroupName.trim() || selectedPlayerIds.length < 2}
+              disabled={isCreating || !newGroupName.trim() || selectedPlayerIds.length !== 4}
             >
-              {isCreating ? 'Creating...' : `Create Group with ${selectedPlayerIds.length} Players`}
+              {isCreating ? 'Creating...' : `Create Group with ${selectedPlayerIds.length}/4 Players`}
             </button>
           </div>
         </form>
