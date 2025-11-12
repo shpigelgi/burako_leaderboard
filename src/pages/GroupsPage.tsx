@@ -2,6 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
 
+// Generate all possible pairs from 4 players
+function generatePairs(playerIds: string[]): Array<[string, string]> {
+  const pairs: Array<[string, string]> = [];
+  for (let i = 0; i < playerIds.length; i++) {
+    for (let j = i + 1; j < playerIds.length; j++) {
+      pairs.push([playerIds[i], playerIds[j]]);
+    }
+  }
+  return pairs;
+}
+
 export function GroupsPage() {
   const navigate = useNavigate();
   const groups = useScoreStore((state) => state.groups);
@@ -13,6 +24,7 @@ export function GroupsPage() {
   const loadAllPlayers = useScoreStore((state) => state.loadAllPlayers);
   const createPlayer = useScoreStore((state) => state.createPlayer);
   const addPlayerToGroup = useScoreStore((state) => state.addPlayerToGroup);
+  const createPair = useScoreStore((state) => state.createPair);
   const loading = useScoreStore((state) => state.loading);
 
   const [newGroupName, setNewGroupName] = useState('');
@@ -63,6 +75,12 @@ export function GroupsPage() {
       // Add selected players to the group
       for (const playerId of selectedPlayerIds) {
         await addPlayerToGroup(playerId);
+      }
+      
+      // Generate all possible pairs (6 pairs from 4 players)
+      const allPairs = generatePairs(selectedPlayerIds);
+      for (const pairPlayers of allPairs) {
+        await createPair(pairPlayers);
       }
       
       setNewGroupName('');

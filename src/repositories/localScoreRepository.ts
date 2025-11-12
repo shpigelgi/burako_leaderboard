@@ -186,6 +186,23 @@ export class LocalScoreRepository implements ScoreRepository {
     return player;
   }
 
+  async updatePlayer(playerId: string, name: string): Promise<Player> {
+    const players = readAllPlayers();
+    const index = players.findIndex((p) => p.id === playerId);
+    if (index === -1) {
+      throw new Error('Player not found');
+    }
+    players[index].name = name;
+    writeAllPlayers(players);
+    return players[index];
+  }
+
+  async deletePlayer(playerId: string): Promise<void> {
+    const players = readAllPlayers();
+    const filtered = players.filter((p) => p.id !== playerId);
+    writeAllPlayers(filtered);
+  }
+
   // Group membership
   async listGroupMembers(groupId: GroupId): Promise<Player[]> {
     const data = readGroupData(groupId);

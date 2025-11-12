@@ -9,6 +9,8 @@ export interface ScoreRepository {
   // Player management (global)
   listAllPlayers(): Promise<Player[]>;
   createPlayer(name: string): Promise<Player>;
+  updatePlayer(playerId: string, name: string): Promise<Player>;
+  deletePlayer(playerId: string): Promise<void>;
   
   // Group membership
   listGroupMembers(groupId: GroupId): Promise<Player[]>;

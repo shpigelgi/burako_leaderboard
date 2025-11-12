@@ -42,8 +42,13 @@ export interface ScoreState {
   // Player actions
   loadAllPlayers: () => Promise<void>;
   createPlayer: (name: string) => Promise<Player>;
+  updatePlayer: (playerId: string, name: string) => Promise<Player>;
+  deletePlayer: (playerId: string) => Promise<void>;
   addPlayerToGroup: (playerId: string) => Promise<void>;
   removePlayerFromGroup: (playerId: string) => Promise<void>;
+  
+  // Pair actions
+  createPair: (players: [string, string]) => Promise<Pair>;
   
   // Game actions (use activeGroupId internally)
   addGame: (input: NewGameInput) => Promise<GameRecord>;
@@ -324,6 +329,31 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     }
   },
   
+  updatePlayer: async (playerId: string, name: string) => {
+    set({ loading: true, error: undefined });
+    try {
+      const player = await repository.updatePlayer(playerId, name);
+      const allPlayers = get().allPlayers.map((p) => (p.id === playerId ? player : p));
+      set({ allPlayers, loading: false });
+      return player;
+    } catch (error) {
+      set({ loading: false, error: (error as Error).message });
+      throw error;
+    }
+  },
+  
+  deletePlayer: async (playerId: string) => {
+    set({ loading: true, error: undefined });
+    try {
+      await repository.deletePlayer(playerId);
+      const allPlayers = get().allPlayers.filter((p) => p.id !== playerId);
+      set({ allPlayers, loading: false });
+    } catch (error) {
+      set({ loading: false, error: (error as Error).message });
+      throw error;
+    }
+  },
+  
   addPlayerToGroup: async (playerId: string) => {
     const { activeGroupId } = get();
     if (!activeGroupId) {
@@ -350,6 +380,23 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       await repository.removePlayerFromGroup(activeGroupId, playerId);
       const players = await repository.listGroupMembers(activeGroupId);
       set({ players, loading: false });
+    } catch (error) {
+      set({ loading: false, error: (error as Error).message });
+      throw error;
+    }
+  },
+  
+  createPair: async (players: [string, string]) => {
+    const { activeGroupId } = get();
+    if (!activeGroupId) {
+      throw new Error('No active group');
+    }
+    set({ loading: true, error: undefined });
+    try {
+      const pair = await repository.createPair(activeGroupId, players);
+      const pairs = await repository.listPairs(activeGroupId);
+      set({ pairs, loading: false });
+      return pair;
     } catch (error) {
       set({ loading: false, error: (error as Error).message });
       throw error;

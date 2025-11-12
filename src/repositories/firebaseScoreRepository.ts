@@ -153,6 +153,20 @@ export class FirebaseScoreRepository implements ScoreRepository {
     return player;
   }
 
+  async updatePlayer(playerId: string, name: string): Promise<Player> {
+    const playerDoc = doc(playersCollection, playerId);
+    const player: Player = {
+      id: playerId,
+      name,
+    };
+    await setDoc(playerDoc, player);
+    return player;
+  }
+
+  async deletePlayer(playerId: string): Promise<void> {
+    await deleteDoc(doc(playersCollection, playerId));
+  }
+
   // Group membership
   async listGroupMembers(groupId: GroupId): Promise<Player[]> {
     const membersCollection = collection(db, `groups/${groupId}/members`);
