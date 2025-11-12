@@ -1,16 +1,18 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 import { AppLayout } from './layout/AppLayout.tsx';
-import { InfoPage } from './pages/InfoPage.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { PageErrorBoundary } from './components/PageErrorBoundary.tsx';
 
-// Feature imports
-import { GroupsPage } from './features/groups';
-import { PlayersPage } from './features/players';
-import { AddGamePage, HistoryPage } from './features/games';
-import { LeaderboardPage } from './features/leaderboard';
+// Lazy load feature pages for code splitting
+const GroupsPage = lazy(() => import('./features/groups').then(m => ({ default: m.GroupsPage })));
+const PlayersPage = lazy(() => import('./features/players').then(m => ({ default: m.PlayersPage })));
+const AddGamePage = lazy(() => import('./features/games').then(m => ({ default: m.AddGamePage })));
+const HistoryPage = lazy(() => import('./features/games').then(m => ({ default: m.HistoryPage })));
+const LeaderboardPage = lazy(() => import('./features/leaderboard').then(m => ({ default: m.LeaderboardPage })));
+const InfoPage = lazy(() => import('./pages/InfoPage.tsx').then(m => ({ default: m.InfoPage })));
 
 function App() {
   return (
@@ -49,7 +51,9 @@ function App() {
             path="/leaderboard" 
             element={
               <PageErrorBoundary pageName="Leaderboard">
-                <LeaderboardPage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <LeaderboardPage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
@@ -57,7 +61,9 @@ function App() {
             path="/history" 
             element={
               <PageErrorBoundary pageName="History">
-                <HistoryPage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <HistoryPage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
@@ -65,7 +71,9 @@ function App() {
             path="/info" 
             element={
               <PageErrorBoundary pageName="Info">
-                <InfoPage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <InfoPage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
@@ -73,7 +81,9 @@ function App() {
             path="/add" 
             element={
               <PageErrorBoundary pageName="Add Game">
-                <AddGamePage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <AddGamePage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
@@ -81,7 +91,9 @@ function App() {
             path="/groups" 
             element={
               <PageErrorBoundary pageName="Groups">
-                <GroupsPage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <GroupsPage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
@@ -89,7 +101,9 @@ function App() {
             path="/players" 
             element={
               <PageErrorBoundary pageName="Players">
-                <PlayersPage />
+                <Suspense fallback={<div className="status-card">Loading...</div>}>
+                  <PlayersPage />
+                </Suspense>
               </PageErrorBoundary>
             } 
           />
