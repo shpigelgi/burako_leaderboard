@@ -169,19 +169,27 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       
       // Load groups
       const groups = await repository.listGroups();
+      console.log('Loaded groups:', groups);
+      console.log('Number of groups:', groups.length);
       
       // Get or set active group
       let activeGroupId = localStorage.getItem('burako_active_group_id');
+      console.log('Active group ID from localStorage:', activeGroupId);
+      
       if (!activeGroupId && groups.length > 0) {
         activeGroupId = groups[0].id;
+        console.log('Setting first group as active:', activeGroupId);
         localStorage.setItem('burako_active_group_id', activeGroupId);
       }
       
       if (!activeGroupId) {
         // No groups yet - show onboarding
+        console.log('No active group, showing onboarding');
         set({ groups, loading: false, initialized: true });
         return;
       }
+      
+      console.log('Loading data for group:', activeGroupId);
       
       // Load active group data
       const [players, pairs, games, allPlayers] = await Promise.all([
