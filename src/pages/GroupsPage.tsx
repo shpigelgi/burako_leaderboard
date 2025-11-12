@@ -19,6 +19,7 @@ export function GroupsPage() {
   const activeGroupId = useScoreStore((state) => state.activeGroupId);
   const allPlayers = useScoreStore((state) => state.allPlayers);
   const createGroup = useScoreStore((state) => state.createGroup);
+  const updateGroup = useScoreStore((state) => state.updateGroup);
   const deleteGroup = useScoreStore((state) => state.deleteGroup);
   const switchGroup = useScoreStore((state) => state.switchGroup);
   const loadAllPlayers = useScoreStore((state) => state.loadAllPlayers);
@@ -32,6 +33,8 @@ export function GroupsPage() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editGroupName, setEditGroupName] = useState('');
 
   useEffect(() => {
     void loadAllPlayers();
@@ -65,9 +68,17 @@ export function GroupsPage() {
       alert('Please select exactly 4 players for the group');
       return;
     }
+    
+    // Check for duplicate group names
+    const groupName = newGroupName.trim();
+    if (groups.some((g) => g.name.toLowerCase() === groupName.toLowerCase())) {
+      alert(`A group named "${groupName}" already exists. Please choose a different name.`);
+      return;
+    }
+    
     setIsCreating(true);
     try {
-      const group = await createGroup(newGroupName.trim());
+      const group = await createGroup(groupName);
       
       // Switch to the new group first
       await switchGroup(group.id);
@@ -96,6 +107,38 @@ export function GroupsPage() {
   const handleSwitchGroup = async (groupId: string) => {
     await switchGroup(groupId);
     navigate('/leaderboard');
+  };
+
+  const handleStartEdit = (groupId: string, currentName: string) => {
+    setEditingGroupId(groupId);
+    setEditGroupName(currentName);
+    setDeleteConfirm(null);
+  };
+
+  const handleSaveEdit = async (groupId: string) => {
+    if (!editGroupName.trim()) {
+      return;
+    }
+    
+    // Check for duplicate names (excluding current group)
+    const groupName = editGroupName.trim();
+    if (groups.some((g) => g.id !== groupId && g.name.toLowerCase() === groupName.toLowerCase())) {
+      alert(`A group named "${groupName}" already exists. Please choose a different name.`);
+      return;
+    }
+    
+    try {
+      await updateGroup(groupId, groupName);
+      setEditingGroupId(null);
+      setEditGroupName('');
+    } catch (error) {
+      console.error('Failed to update group:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGroupId(null);
+    setEditGroupName('');
   };
 
   const handleDeleteGroup = async (groupId: string) => {
@@ -197,46 +240,87 @@ export function GroupsPage() {
           </div>
         ) : (
           <div className="groups-list">
-            {groups.map((group) => (
-              <div
-                key={group.id}
-                className={`group-card ${group.id === activeGroupId ? 'active' : ''}`}
-              >
-                <div className="group-info">
-                  <h3 className="group-name">{group.name}</h3>
+            {groups.map((group) => {
+              const isEditing = editingGroupId === group.id;
+              
+              return (
+                <div
+                  key={group.id}
+                  className={`group-card ${group.id === activeGroupId ? 'active' : ''}`}
+                >
+                  <div className="group-info">
+                    {isEditing ? (
+                      <div className="group-edit-form">
+                        <input
+                          type="text"
+                          className="field-control"
+                          value={editGroupName}
+                          onChange={(e) => setEditGroupName(e.target.value)}
+                          autoFocus
+                        />
+                        <div className="group-edit-actions">
+                          <button
+                            className="button button-small"
+                            onClick={() => handleSaveEdit(group.id)}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="button button-secondary button-small"
+                            onClick={handleCancelEdit}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <h3 className="group-name">{group.name}</h3>
+                    )}
                   <p className="group-meta">
                     Created {new Date(group.createdAt).toLocaleDateString()}
                     {group.id === activeGroupId && <span className="active-badge"> • Active</span>}
                   </p>
                 </div>
                 <div className="group-actions">
-                  {group.id !== activeGroupId && (
-                    <button
-                      className="button button-secondary"
-                      onClick={() => handleSwitchGroup(group.id)}
-                      disabled={loading}
-                    >
-                      Switch to This Group
-                    </button>
-                  )}
-                  <button
-                    className="button button-danger"
-                    onClick={() => handleDeleteGroup(group.id)}
-                    disabled={loading}
-                  >
-                    {deleteConfirm === group.id ? 'Confirm Delete?' : 'Delete'}
-                  </button>
-                  {deleteConfirm === group.id && (
-                    <button
-                      className="button button-secondary"
-                      onClick={() => setDeleteConfirm(null)}
-                    >
-                      Cancel
-                    </button>
+                  {!isEditing && (
+                    <>
+                      {group.id !== activeGroupId && (
+                        <button
+                          className="button button-secondary"
+                          onClick={() => handleSwitchGroup(group.id)}
+                          disabled={loading}
+                        >
+                          Switch to This Group
+                        </button>
+                      )}
+                      <button
+                        className="button button-secondary"
+                        onClick={() => handleStartEdit(group.id, group.name)}
+                        disabled={loading}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="button button-danger"
+                        onClick={() => handleDeleteGroup(group.id)}
+                        disabled={loading}
+                      >
+                        {deleteConfirm === group.id ? 'Confirm Delete?' : 'Delete'}
+                      </button>
+                      {deleteConfirm === group.id && (
+                        <button
+                          className="button button-secondary"
+                          onClick={() => setDeleteConfirm(null)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

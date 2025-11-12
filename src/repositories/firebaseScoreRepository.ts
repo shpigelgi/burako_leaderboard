@@ -122,6 +122,25 @@ export class FirebaseScoreRepository implements ScoreRepository {
     return group;
   }
 
+  async updateGroup(groupId: GroupId, name: string): Promise<Group> {
+    const groupDoc = doc(groupsCollection, groupId);
+    const groupSnapshot = await getDoc(groupDoc);
+    
+    if (!groupSnapshot.exists()) {
+      throw new Error('Group not found');
+    }
+    
+    const existingGroup = groupSnapshot.data() as Group;
+    const updatedGroup: Group = {
+      ...existingGroup,
+      id: groupId,
+      name,
+    };
+    
+    await setDoc(groupDoc, updatedGroup);
+    return updatedGroup;
+  }
+
   async deleteGroup(groupId: GroupId): Promise<void> {
     const batch = writeBatch(db);
     

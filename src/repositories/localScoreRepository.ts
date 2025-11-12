@@ -158,6 +158,19 @@ export class LocalScoreRepository implements ScoreRepository {
     return group;
   }
 
+  async updateGroup(groupId: GroupId, name: string): Promise<Group> {
+    const groups = readGroups();
+    const index = groups.findIndex((g) => g.id === groupId);
+    
+    if (index === -1) {
+      throw new Error('Group not found');
+    }
+    
+    groups[index].name = name;
+    writeGroups(groups);
+    return groups[index];
+  }
+
   async deleteGroup(groupId: GroupId): Promise<void> {
     const groups = readGroups();
     const filtered = groups.filter((g) => g.id !== groupId);

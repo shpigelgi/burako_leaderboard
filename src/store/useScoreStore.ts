@@ -36,6 +36,7 @@ export interface ScoreState {
   // Group actions
   loadGroups: () => Promise<void>;
   createGroup: (name: string) => Promise<Group>;
+  updateGroup: (groupId: GroupId, name: string) => Promise<Group>;
   switchGroup: (groupId: GroupId) => Promise<void>;
   deleteGroup: (groupId: GroupId) => Promise<void>;
   
@@ -239,6 +240,19 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     try {
       const group = await repository.createGroup(name);
       const groups = [...get().groups, group];
+      set({ groups, loading: false });
+      return group;
+    } catch (error) {
+      set({ loading: false, error: (error as Error).message });
+      throw error;
+    }
+  },
+  
+  updateGroup: async (groupId: GroupId, name: string) => {
+    set({ loading: true, error: undefined });
+    try {
+      const group = await repository.updateGroup(groupId, name);
+      const groups = get().groups.map((g) => (g.id === groupId ? group : g));
       set({ groups, loading: false });
       return group;
     } catch (error) {

@@ -4,6 +4,7 @@ export interface ScoreRepository {
   // Group management
   listGroups(): Promise<Group[]>;
   createGroup(name: string): Promise<Group>;
+  updateGroup(groupId: GroupId, name: string): Promise<Group>;
   deleteGroup(groupId: GroupId): Promise<void>;
   
   // Player management (global)
