@@ -15,8 +15,8 @@ export default defineConfig({
         theme_color: '#2563eb',
         background_color: '#f5f5f5',
         display: 'standalone',
-        scope: '/burako_leaderboard/',
-        start_url: '/burako_leaderboard/',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
             src: 'vite.svg',
@@ -32,5 +32,5 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/burako_leaderboard/', 
+  base: '/', 
 });
