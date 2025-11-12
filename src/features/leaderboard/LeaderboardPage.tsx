@@ -23,6 +23,10 @@ export function LeaderboardPage() {
 
   const [selected, setSelected] = useState<LeaderboardType>('players');
 
+  // Debug: Log pairs to see if they're loaded
+  console.log('LeaderboardPage - pairs:', pairs.length, pairs);
+  console.log('LeaderboardPage - games:', games.length);
+
   const leaderboard = useMemo(() => calculateLeaderboard(games), [games]);
   const pairLeaderboard = useMemo(() => calculatePairLeaderboard(games), [games]);
   const gameLeaderboard = useMemo(() => calculateGameLeaderboard(games), [games]);
@@ -47,8 +51,25 @@ export function LeaderboardPage() {
         .join(' & ');
     }
     
-    // Fallback: Extract pair info from pairId if it follows pattern
-    // This shouldn't happen if pairs are created properly
+    // Fallback: Try to find this pair in any game and extract player names
+    for (const game of games) {
+      const team = game.teams.find(t => t.pairId === pairId);
+      if (team) {
+        // Try to match players by finding scores that sum to team total
+        // Or just get the first 2 unique players from this game
+        const uniquePlayers = [...new Set(game.scores.map(s => s.playerId))];
+        if (uniquePlayers.length >= 2) {
+          // This is a guess - take first 2 players
+          const names = uniquePlayers.slice(0, 2)
+            .map(playerId => {
+              const player = playerLookup.get(playerId);
+              return player?.name ?? 'Unknown';
+            });
+          return names.join(' & ');
+        }
+      }
+    }
+    
     return `Unknown Pair (${pairId})`;
   };
 
