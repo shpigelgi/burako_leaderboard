@@ -1,73 +1,171 @@
-# React + TypeScript + Vite
+# 🎴 Burako Leaderboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, secure web application for tracking Burako (Canasta) card game scores, managing player groups, and viewing game history and leaderboards.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🎮 **Game Tracking** - Record games with detailed scoring for teams and players
+- 👥 **Group Management** - Create and manage groups of 4 players
+- 📊 **Leaderboards** - View player, pair, and game statistics
+- 📜 **Game History** - Review past games with full audit trails
+- ✏️ **Edit & Undo** - Modify scores or undo the last change
+- 🔄 **Real-time Sync** - Firebase integration for multi-device access
+- 📱 **PWA Support** - Install as a mobile app
+- ♿ **Accessible** - WCAG compliant with keyboard navigation
+- 🎨 **Modern UI** - Clean, responsive design with toast notifications
 
-## React Compiler
+## 🚀 Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js 18+ and npm
+- Firebase account (optional, for cloud sync)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Installation
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Clone the repository
+git clone <repository-url>
+cd burako
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Install dependencies
+npm install
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Firebase credentials
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Build for Production
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Build the app
+npm run build
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Preview production build
+npm run preview
 ```
+
+## 🏗️ Tech Stack
+
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Custom CSS with modern features
+- **State Management**: Zustand
+- **Backend**: Firebase (Firestore + Auth)
+- **Testing**: Vitest + Testing Library
+- **PWA**: Vite PWA Plugin
+- **Notifications**: React Hot Toast
+
+## 📁 Project Structure
+
+```
+src/
+├── components/        # Reusable UI components
+│   ├── forms/        # Form components (GroupForm, PlayerSelector, etc.)
+│   └── Skeleton.tsx  # Loading skeletons
+├── features/         # Feature-specific code (future)
+├── hooks/            # Custom React hooks
+│   └── useToast.ts   # Toast notifications
+├── lib/              # Utilities and helpers
+│   ├── accessibility.ts
+│   ├── constants.ts
+│   ├── firebase.ts
+│   ├── sanitize.ts
+│   └── validation.ts
+├── pages/            # Page components
+│   ├── GroupsPage.tsx
+│   ├── PlayersPage.tsx
+│   ├── LeaderboardPage.tsx
+│   ├── HistoryPage.tsx
+│   └── AddGamePage.tsx
+├── repositories/     # Data access layer
+│   ├── firebaseScoreRepository.ts
+│   ├── localScoreRepository.ts
+│   └── repositoryFactory.ts
+├── store/            # Zustand state management
+│   └── useScoreStore.ts
+├── types/            # TypeScript type definitions
+│   └── index.ts
+└── utils/            # Pure utility functions
+    └── groupNameGenerator.ts
+```
+
+## 🔒 Security Features
+
+- ✅ Firebase Security Rules enforcing authentication
+- ✅ Input sanitization (DOMPurify) preventing XSS
+- ✅ Environment variables for sensitive data
+- ✅ No debug logs in production
+- ✅ ARIA labels and accessibility features
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run specific test file
+npm test -- groupNameGenerator.test.ts
+```
+
+## 📝 Development Guidelines
+
+### Code Style
+
+- Follow existing patterns in the codebase
+- Use TypeScript for type safety
+- Keep components small and focused
+- Extract business logic to utilities
+- Write tests for utilities and components
+
+### Git Workflow
+
+```bash
+# Create feature branch
+git checkout -b feature/your-feature
+
+# Make changes and commit
+git add .
+git commit -m "feat: your feature description"
+
+# Push and create PR
+git push origin feature/your-feature
+```
+
+## 🚢 Deployment
+
+### Netlify
+
+See [SECURITY_SETUP.md](./SECURITY_SETUP.md) for Firebase setup.
+
+```bash
+# Deploy to Netlify
+netlify deploy --prod
+```
+
+### GitHub Pages
+
+See [GITHUB_PAGES_SETUP.md](./GITHUB_PAGES_SETUP.md) for detailed instructions.
+
+## 📄 License
+
+MIT
+
+## 👥 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 🐛 Known Issues
+
+None currently. Please report issues on GitHub.
+
+---
+
+Made with ❤️ for Burako players
