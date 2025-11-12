@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   // Migration
   MIGRATION_COMPLETED: 'burako_migration_completed',
   PRE_MIGRATION_BACKUP: 'burako_pre_migration_backup',
+  PAIR_ID_FIX_APPLIED: 'burako_pair_id_fix_applied',
   
   // Active Group
   ACTIVE_GROUP_ID: 'burako_active_group_id',

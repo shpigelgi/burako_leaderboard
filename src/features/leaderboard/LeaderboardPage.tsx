@@ -1,18 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
+import { SkeletonTableRow } from "../../components/Skeleton";
 import {
   calculateGameLeaderboard,
   calculateLeaderboard,
   calculatePairLeaderboard,
-} from '../../lib/scoreUtils';
-import { useScoreStore } from '../../store/useScoreStore';
-import { SkeletonTableRow } from '../../components/Skeleton';
+} from "../../lib/scoreUtils";
+import { useScoreStore } from "../../store/useScoreStore";
 
-type LeaderboardType = 'players' | 'pairs' | 'games';
+type LeaderboardType = "players" | "pairs" | "games";
 
 const leaderboardOptions: Array<{ value: LeaderboardType; label: string }> = [
-  { value: 'players', label: 'Player leaderboard' },
-  { value: 'pairs', label: 'Pair leaderboard' },
-  { value: 'games', label: 'Game leaderboard' },
+  { value: "players", label: "Player leaderboard" },
+  { value: "pairs", label: "Pair leaderboard" },
+  { value: "games", label: "Game leaderboard" },
 ];
 
 export function LeaderboardPage() {
@@ -21,16 +21,25 @@ export function LeaderboardPage() {
   const pairs = useScoreStore((state) => state.pairs);
   const loading = useScoreStore((state) => state.loading);
 
-  const [selected, setSelected] = useState<LeaderboardType>('players');
+  const [selected, setSelected] = useState<LeaderboardType>("players");
 
   const leaderboard = useMemo(() => calculateLeaderboard(games), [games]);
-  const pairLeaderboard = useMemo(() => calculatePairLeaderboard(games), [games]);
-  const gameLeaderboard = useMemo(() => calculateGameLeaderboard(games), [games]);
+  const pairLeaderboard = useMemo(
+    () => calculatePairLeaderboard(games),
+    [games]
+  );
+  const gameLeaderboard = useMemo(
+    () => calculateGameLeaderboard(games),
+    [games]
+  );
   const playerLookup = useMemo(
     () => new Map(players.map((player) => [player.id, player])),
-    [players],
+    [players]
   );
-  const pairLookup = useMemo(() => new Map(pairs.map((pair) => [pair.id, pair])), [pairs]);
+  const pairLookup = useMemo(
+    () => new Map(pairs.map((pair) => [pair.id, pair])),
+    [pairs]
+  );
 
   if (games.length === 0) {
     return <div className="panel">No games recorded yet.</div>;
@@ -39,20 +48,20 @@ export function LeaderboardPage() {
   const pairLabel = (pairId: string) => {
     const pair = pairLookup.get(pairId);
     if (!pair) {
-      return 'Unknown';
+      return "Unknown";
     }
-    
+
     return pair.players
       .map((playerId) => {
         const player = playerLookup.get(playerId);
-        return player?.name ?? 'Unknown';
+        return player?.name ?? "Unknown";
       })
-      .join(' & ');
+      .join(" & ");
   };
 
   // Check if any pairs are missing
   const hasMissingPairs = useMemo(() => {
-    return pairLeaderboard.some(entry => !pairLookup.get(entry.pairId));
+    return pairLeaderboard.some((entry) => !pairLookup.get(entry.pairId));
   }, [pairLeaderboard, pairLookup]);
 
   const renderPlayers = () => {
@@ -79,7 +88,7 @@ export function LeaderboardPage() {
         </>
       );
     }
-    
+
     if (leaderboard.length === 0) {
       return <div className="status-card">No player stats available.</div>;
     }
@@ -99,12 +108,16 @@ export function LeaderboardPage() {
           <tbody>
             {leaderboard.map((entry) => (
               <tr key={entry.playerId}>
-                <td data-label="Player">{playerLookup.get(entry.playerId)?.name || 'Unknown'}</td>
+                <td data-label="Player">
+                  {playerLookup.get(entry.playerId)?.name || "Unknown"}
+                </td>
                 <td data-label="Total Points">{entry.totalPoints}</td>
                 <td data-label="Games">{entry.gamesPlayed}</td>
                 <td data-label="Average">{entry.averagePoints}</td>
                 <td data-label="Last Played">
-                  {entry.lastPlayedAt ? new Date(entry.lastPlayedAt).toLocaleString() : '—'}
+                  {entry.lastPlayedAt
+                    ? new Date(entry.lastPlayedAt).toLocaleString()
+                    : "—"}
                 </td>
               </tr>
             ))}
@@ -123,7 +136,8 @@ export function LeaderboardPage() {
         <h2 className="section-title">Top Pairs</h2>
         {hasMissingPairs && (
           <div className="status-card error">
-            ⚠️ Warning: Some pairs could not be found. Pair data may be incomplete.
+            ⚠️ Warning: Some pairs could not be found. Pair data may be
+            incomplete.
           </div>
         )}
         <table className="table">
@@ -144,7 +158,9 @@ export function LeaderboardPage() {
                 <td data-label="Games">{entry.gamesPlayed}</td>
                 <td data-label="Average">{entry.averagePoints}</td>
                 <td data-label="Last Played">
-                  {entry.lastPlayedAt ? new Date(entry.lastPlayedAt).toLocaleString() : '—'}
+                  {entry.lastPlayedAt
+                    ? new Date(entry.lastPlayedAt).toLocaleString()
+                    : "—"}
                 </td>
               </tr>
             ))}
@@ -177,7 +193,9 @@ export function LeaderboardPage() {
             {gameLeaderboard.map((entry) => (
               <tr key={entry.gameId}>
                 <td data-label="Game #">{entry.gameNumber}</td>
-                <td data-label="Played">{new Date(entry.playedAt).toLocaleString()}</td>
+                <td data-label="Played">
+                  {new Date(entry.playedAt).toLocaleString()}
+                </td>
                 <td data-label="Winner">{pairLabel(entry.winningPairId)}</td>
                 <td data-label="Winning Points">{entry.winningPoints}</td>
                 <td data-label="Loser">{pairLabel(entry.losingPairId)}</td>
@@ -192,10 +210,10 @@ export function LeaderboardPage() {
   };
 
   const renderContent = () => {
-    if (selected === 'players') {
+    if (selected === "players") {
       return renderPlayers();
     }
-    if (selected === 'pairs') {
+    if (selected === "pairs") {
       return renderPairs();
     }
     return renderGames();
@@ -210,7 +228,9 @@ export function LeaderboardPage() {
           <select
             className="field-control"
             value={selected}
-            onChange={(event) => setSelected(event.target.value as LeaderboardType)}
+            onChange={(event) =>
+              setSelected(event.target.value as LeaderboardType)
+            }
           >
             {leaderboardOptions.map((option) => (
               <option key={option.value} value={option.value}>

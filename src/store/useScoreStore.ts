@@ -103,19 +103,30 @@ async function migrateToMultiGroup() {
       await repository.addPlayerToGroup(defaultGroup.id, player.id);
     }
     
-    // Create pairs in the group
+    // Create pairs in the group and build mapping from old IDs to new IDs
+    const pairIdMapping = new Map<string, string>();
     for (const pair of backup.pairs) {
-      await repository.createPair(defaultGroup.id, pair.players);
+      const newPair = await repository.createPair(defaultGroup.id, pair.players);
+      pairIdMapping.set(pair.id, newPair.id);
     }
     
-    // Migrate games
+    // Migrate games with updated pair IDs
     for (const game of backup.games) {
+      const updatedTeams = game.teams.map(team => ({
+        ...team,
+        pairId: pairIdMapping.get(team.pairId) || team.pairId,
+      }));
+      
+      const updatedStartingPairId = game.startingPairId 
+        ? pairIdMapping.get(game.startingPairId) || game.startingPairId
+        : undefined;
+      
       await repository.addGame(defaultGroup.id, {
         playedAt: game.playedAt,
-        teams: game.teams,
+        teams: updatedTeams,
         scores: game.scores,
         notes: game.notes,
-        startingPairId: game.startingPairId,
+        startingPairId: updatedStartingPairId,
       });
     }
     
@@ -126,6 +137,85 @@ async function migrateToMultiGroup() {
   } catch (error) {
     console.error('Migration failed:', error);
     throw new Error(`Migration failed: ${(error as Error).message}`);
+  }
+}
+
+// Fix migration for existing migrated data with incorrect pair IDs
+async function fixPairIdMigration() {
+  const fixApplied = localStorage.getItem(STORAGE_KEYS.PAIR_ID_FIX_APPLIED);
+  
+  if (fixApplied === 'true') {
+    return;
+  }
+  
+  try {
+    const groups = await repository.listGroups();
+    if (groups.length === 0) {
+      localStorage.setItem(STORAGE_KEYS.PAIR_ID_FIX_APPLIED, 'true');
+      return;
+    }
+    
+    // Get legacy pairs if they exist
+    const legacyPairs = await repository.legacyListPairs?.() || [];
+    if (legacyPairs.length === 0) {
+      localStorage.setItem(STORAGE_KEYS.PAIR_ID_FIX_APPLIED, 'true');
+      return;
+    }
+    
+    // Process each group
+    for (const group of groups) {
+      const currentPairs = await repository.listPairs(group.id);
+      const games = await repository.listGames(group.id);
+      
+      // Build mapping by matching player composition
+      const pairIdMapping = new Map<string, string>();
+      for (const legacyPair of legacyPairs) {
+        const sortedLegacyPlayers = [...legacyPair.players].sort();
+        const matchingPair = currentPairs.find(p => {
+          const sortedCurrentPlayers = [...p.players].sort();
+          return sortedCurrentPlayers[0] === sortedLegacyPlayers[0] 
+              && sortedCurrentPlayers[1] === sortedLegacyPlayers[1];
+        });
+        if (matchingPair) {
+          pairIdMapping.set(legacyPair.id, matchingPair.id);
+        }
+      }
+      
+      if (pairIdMapping.size === 0) {
+        continue;
+      }
+      
+      // Update games that reference old pair IDs
+      for (const game of games) {
+        let needsUpdate = false;
+        
+        const updatedTeams = game.teams.map(team => {
+          const newPairId = pairIdMapping.get(team.pairId);
+          if (newPairId && newPairId !== team.pairId) {
+            needsUpdate = true;
+            return { ...team, pairId: newPairId };
+          }
+          return team;
+        });
+        
+        const updatedStartingPairId = game.startingPairId && pairIdMapping.has(game.startingPairId)
+          ? pairIdMapping.get(game.startingPairId)
+          : game.startingPairId;
+        
+        if (needsUpdate || (updatedStartingPairId && updatedStartingPairId !== game.startingPairId)) {
+          await repository.updateGame(group.id, game.id, {
+            teams: updatedTeams,
+            startingPairId: updatedStartingPairId,
+          });
+        }
+      }
+    }
+    
+    localStorage.setItem(STORAGE_KEYS.PAIR_ID_FIX_APPLIED, 'true');
+    
+  } catch (error) {
+    console.error('Pair ID fix failed:', error);
+    throw new Error(`Pair ID fix failed: ${(error as Error).message}`);
   }
 }
 
@@ -153,6 +243,9 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       
       // Run migration if needed
       await migrateToMultiGroup();
+      
+      // Fix pair IDs in existing migrated data
+      await fixPairIdMigration();
       
       // Load groups
       const groups = await repository.listGroups();
