@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { Skeleton, SkeletonCard, SkeletonList, SkeletonTableRow } from './Skeleton';
+import { Skeleton, SkeletonCard, SkeletonList, SkeletonTableRow } from '../../components/Skeleton';
 
 describe('Skeleton', () => {
   it('renders with default props', () => {
