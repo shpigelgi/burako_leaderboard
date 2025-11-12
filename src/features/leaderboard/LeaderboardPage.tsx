@@ -52,20 +52,23 @@ export function LeaderboardPage() {
     }
     
     // Fallback: Try to find this pair in any game and extract player names
+    // by matching scores to team total
     for (const game of games) {
       const team = game.teams.find(t => t.pairId === pairId);
       if (team) {
-        // Try to match players by finding scores that sum to team total
-        // Or just get the first 2 unique players from this game
-        const uniquePlayers = [...new Set(game.scores.map(s => s.playerId))];
-        if (uniquePlayers.length >= 2) {
-          // This is a guess - take first 2 players
-          const names = uniquePlayers.slice(0, 2)
-            .map(playerId => {
-              const player = playerLookup.get(playerId);
-              return player?.name ?? 'Unknown';
-            });
-          return names.join(' & ');
+        // Find which 2 players' scores sum to this team's total
+        const scores = game.scores;
+        for (let i = 0; i < scores.length; i++) {
+          for (let j = i + 1; j < scores.length; j++) {
+            if (scores[i].points + scores[j].points === team.totalPoints) {
+              const names = [scores[i].playerId, scores[j].playerId]
+                .map(playerId => {
+                  const player = playerLookup.get(playerId);
+                  return player?.name ?? 'Unknown';
+                });
+              return names.join(' & ');
+            }
+          }
         }
       }
     }

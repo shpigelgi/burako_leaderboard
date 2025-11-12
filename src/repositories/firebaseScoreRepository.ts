@@ -247,9 +247,9 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const pairsCollection = collection(db, `groups/${groupId}/pairs`);
     const snapshot = await getDocs(query(pairsCollection));
     const rawData = snapshot.docs.map((docSnapshot) => ({
-      id: docSnapshot.id,
-      groupId,
       ...docSnapshot.data(),
+      id: docSnapshot.id, // Put id AFTER data to ensure document ID takes precedence
+      groupId,
     }));
     return validateArray(rawData, validatePair, 'Pairs');
   }
@@ -417,9 +417,9 @@ export class FirebaseScoreRepository implements ScoreRepository {
     const pairsCollection = collection(db, 'pairs');
     const snapshot = await getDocs(query(pairsCollection));
     const rawData = snapshot.docs.map((docSnapshot) => ({
-      id: docSnapshot.id,
-      groupId: DEFAULT_GROUP_ID,
       ...docSnapshot.data(),
+      id: docSnapshot.id, // Put id AFTER data to ensure document ID takes precedence
+      groupId: DEFAULT_GROUP_ID,
     }));
     return validateArray(rawData, validatePair, 'Legacy Pairs');
   }
