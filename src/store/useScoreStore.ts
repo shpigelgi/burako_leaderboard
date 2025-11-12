@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { LocalScoreRepository } from '../repositories/localScoreRepository';
-import { FirebaseScoreRepository, subscribeToGames } from '../repositories/firebaseScoreRepository';
+import RepositoryFactory from '../repositories/repositoryFactory';
+import { subscribeToGames } from '../repositories/firebaseScoreRepository';
 import { ensureAuth } from '../lib/firebase';
 import type {
   GameId,
@@ -57,8 +57,8 @@ export interface ScoreState {
   deleteGame: (id: GameId) => Promise<void>;
 }
 
-const useFirebase = import.meta.env.VITE_USE_FIREBASE === 'true';
-const repository = useFirebase ? new FirebaseScoreRepository() : new LocalScoreRepository();
+// Get singleton repository instance
+const repository = RepositoryFactory.getRepository();
 
 let unsubscribeGames: (() => void) | undefined;
 
@@ -160,7 +160,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     
     try {
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         await ensureAuth();
       }
       
@@ -200,7 +200,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       ]);
       
       // Subscribe to changes
-      if (useFirebase && !unsubscribeGames) {
+      if (RepositoryFactory.isUsingFirebase() && !unsubscribeGames) {
         unsubscribeGames = subscribeToGames(
           activeGroupId,
           (records) => set({ games: records }),
@@ -264,7 +264,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       ]);
       
       // Subscribe to new group
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         unsubscribeGames = subscribeToGames(
           groupId,
           (records) => set({ games: records }),
@@ -419,7 +419,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const created = await repository.addGame(activeGroupId, input);
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         set({ loading: false });
       } else {
         const games = [...get().games, created];
@@ -440,7 +440,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const updated = await repository.updateGame(activeGroupId, id, update);
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         set({ loading: false });
       } else {
         const games = get().games.map((game) => (game.id === id ? updated : game));
@@ -461,7 +461,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       const reverted = await repository.undoLastChange(activeGroupId, id);
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         set({ loading: false });
       } else {
         const games = get().games.map((game) => (game.id === id ? reverted : game));
@@ -482,7 +482,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     set({ loading: true, error: undefined });
     try {
       await repository.deleteGame(activeGroupId, id);
-      if (useFirebase) {
+      if (RepositoryFactory.isUsingFirebase()) {
         set({ loading: false });
       } else {
         const games = get().games.filter((game) => game.id !== id);
