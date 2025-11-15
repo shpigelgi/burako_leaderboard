@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, type NavLinkProps } from 'react-router-dom';
 import { useScoreStore } from '../store/useScoreStore';
 
@@ -11,10 +11,16 @@ export function AppLayout() {
   const activeGroupId = useScoreStore((state) => state.activeGroupId);
   const switchGroup = useScoreStore((state) => state.switchGroup);
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const activeGroup = groups.find((g) => g.id === activeGroupId);
 
   const navClassName: NavLinkProps['className'] = ({ isActive }) =>
     isActive ? 'active' : undefined;
+
+  const handleNavClick = () => {
+    setIsMenuOpen(false);
+  };
 
   useEffect(() => {
     void init();
@@ -23,31 +29,43 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <header className="app-header" role="banner">
-        <div className="app-brand">
-          <div>Burako Scores</div>
-          {activeGroup && (
-            <div className="active-group-name" title="Active Group">
-              {activeGroup.name}
-            </div>
-          )}
+        <div className="app-header-top">
+          <div className="app-brand">
+            <div>Burako Scores</div>
+            {activeGroup && (
+              <div className="active-group-name" title="Active Group">
+                {activeGroup.name}
+              </div>
+            )}
+          </div>
+          <button
+            className="hamburger-menu"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
+          >
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+          </button>
         </div>
-        <nav className="app-nav" aria-label="Main navigation">
-          <NavLink to="/leaderboard" className={navClassName}>
+        <nav className={`app-nav ${isMenuOpen ? 'app-nav--open' : ''}`} aria-label="Main navigation">
+          <NavLink to="/leaderboard" className={navClassName} onClick={handleNavClick}>
             Leaderboard
           </NavLink>
-          <NavLink to="/history" className={navClassName}>
+          <NavLink to="/history" className={navClassName} onClick={handleNavClick}>
             History
           </NavLink>
-          <NavLink to="/info" className={navClassName}>
+          <NavLink to="/info" className={navClassName} onClick={handleNavClick}>
             Info
           </NavLink>
-          <NavLink to="/add" className={navClassName}>
+          <NavLink to="/add" className={navClassName} onClick={handleNavClick}>
             Add Game
           </NavLink>
-          <NavLink to="/players" className={navClassName}>
+          <NavLink to="/players" className={navClassName} onClick={handleNavClick}>
             Players
           </NavLink>
-          <NavLink to="/groups" className={navClassName}>
+          <NavLink to="/groups" className={navClassName} onClick={handleNavClick}>
             Groups
           </NavLink>
         </nav>
